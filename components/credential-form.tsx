@@ -17,6 +17,8 @@ export function CredentialForm({ providers }: { providers: Array<{ id: string; n
         providerId: formData.get("providerId"),
         label: formData.get("label"),
         secret: formData.get("secret"),
+        notes: formData.get("notes"),
+        visibilityLevel: formData.get("visibilityLevel"),
       }),
     });
 
@@ -36,6 +38,11 @@ export function CredentialForm({ providers }: { providers: Array<{ id: string; n
       </select>
       <input name="label" placeholder="工作账号 / 个人账号" required />
       <input name="secret" placeholder="sk-..." required />
+      <textarea name="notes" placeholder="用途备注，比如个人开发 / 生产监控" rows={3} />
+      <select name="visibilityLevel" defaultValue="REVEALABLE">
+        <option value="REVEALABLE">允许二次确认后查看明文</option>
+        <option value="MASKED">仅允许脱敏展示</option>
+      </select>
       <button disabled={loading} type="submit">
         {loading ? "保存中..." : "新增 API Key"}
       </button>

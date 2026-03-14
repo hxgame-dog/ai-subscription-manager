@@ -140,6 +140,7 @@ nav {
   background: transparent;
   box-shadow: none;
   cursor: pointer;
+  color: var(--text);
 }
 
 .nav-label {
@@ -409,6 +410,21 @@ nav {
 .stack {
   display: grid;
   gap: 16px;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.secret-box {
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px dashed var(--line-strong);
+  background: rgba(255, 255, 255, 0.84);
+  word-break: break-all;
+  font-family: "IBM Plex Mono", monospace;
 }
 
 .table-wrap {

@@ -25,10 +25,14 @@ export async function GET() {
       provider: c.provider.name,
       providerId: c.providerId,
       label: c.label,
+      notes: c.notes,
       fingerprint: c.fingerprint,
       status: c.status,
       maskedValue: maskSecret(decryptSecret(c)),
+      visibilityLevel: c.visibilityLevel,
       lastUsedAt: c.lastUsedAt,
+      lastViewedAt: c.lastViewedAt,
+      lastCopiedAt: c.lastCopiedAt,
       createdAt: c.createdAt,
     })),
   );
@@ -65,11 +69,13 @@ export async function POST(request: Request) {
       userId: session.user.id,
       providerId: parsed.data.providerId,
       label: parsed.data.label,
+      notes: parsed.data.notes,
       fingerprint: encrypted.fingerprint,
       encryptedDek: encrypted.encryptedDek,
       encryptedValue: encrypted.encryptedValue,
       iv: encrypted.iv,
       authTag: encrypted.authTag,
+      visibilityLevel: parsed.data.visibilityLevel,
     },
   });
 

@@ -1,6 +1,8 @@
+import Link from "next/link";
+
 import { CredentialForm } from "@/components/credential-form";
 import { auth } from "@/lib/auth";
-import { maskSecret } from "@/lib/crypto";
+import { decryptSecret, maskSecret } from "@/lib/crypto";
 import { prisma } from "@/lib/db";
 import { ensureProviders } from "@/lib/providers";
 
@@ -74,13 +76,22 @@ export default async function CredentialsPage() {
                   <tr key={item.id}>
                     <td>
                       <div className="cell-title">
-                        <strong>{item.provider.name}</strong>
+                        <strong>
+                          <Link href={`/credentials/${item.id}`}>{item.provider.name}</Link>
+                        </strong>
                         <span className="cell-subtitle">{item.provider.key}</span>
                       </div>
                     </td>
-                    <td>{item.label}</td>
+                    <td>
+                      <div className="cell-title">
+                        <strong>
+                          <Link href={`/credentials/${item.id}`}>{item.label}</Link>
+                        </strong>
+                        <span className="cell-subtitle">{item.notes || "无备注"}</span>
+                      </div>
+                    </td>
                     <td>{item.fingerprint}</td>
-                    <td>{maskSecret(item.fingerprint)}</td>
+                    <td>{maskSecret(decryptSecret(item))}</td>
                     <td>
                       <span
                         className={`badge ${

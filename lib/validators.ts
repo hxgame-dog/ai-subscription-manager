@@ -15,6 +15,8 @@ export const credentialSchema = z.object({
   providerId: z.string().min(1),
   label: z.string().min(1),
   secret: z.string().min(8),
+  notes: z.string().max(500).optional(),
+  visibilityLevel: z.enum(["MASKED", "REVEALABLE"]).default("REVEALABLE"),
 });
 
 export const syncSchema = z.object({

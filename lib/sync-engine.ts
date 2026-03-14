@@ -7,38 +7,75 @@ function randomBetween(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
-async function mockProviderPull(userId: string, providerId: string) {
+const providerModelMap: Record<string, string[]> = {
+  openai: ["gpt-4o-mini", "gpt-4.1-mini"],
+  gemini: ["gemini-2.0-flash", "gemini-1.5-pro"],
+  anthropic: ["claude-3-5-sonnet", "claude-3-haiku"],
+  groq: ["llama-3.3-70b", "mixtral-8x7b"],
+  perplexity: ["sonar", "sonar-pro"],
+  cohere: ["command-r", "command-r-plus"],
+  mistral: ["mistral-large", "codestral"],
+  replicate: ["flux-dev", "llama-3.1"],
+};
+
+async function mockProviderPull(userId: string, providerId: string, providerKey: string) {
   const now = new Date();
-  const requestCount = randomBetween(20, 300);
-  const inputTokens = randomBetween(3000, 50000);
-  const outputTokens = randomBetween(2000, 35000);
-  const amount = Number(((inputTokens + outputTokens) / 1_000_000).toFixed(4));
-
-  await prisma.usageRecord.create({
-    data: {
-      userId,
-      providerId,
-      model: "auto-synced",
-      requestCount,
-      inputTokens,
-      outputTokens,
-      recordedAt: now,
-      source: "connector:mock",
-    },
+  const activeCredential = await prisma.apiCredential.findFirst({
+    where: { userId, providerId, status: "ACTIVE" },
+    orderBy: { updatedAt: "desc" },
   });
 
-  await prisma.spendRecord.create({
-    data: {
-      userId,
-      providerId,
-      amount,
-      currency: "USD",
-      recordedAt: now,
-      source: "connector:mock",
-    },
-  });
+  const models = providerModelMap[providerKey] ?? ["default-model"];
+  let written = 0;
 
-  return 2;
+  for (const providerModel of models.slice(0, 2)) {
+    const requestCount = randomBetween(20, 300);
+    const inputTokens = randomBetween(3000, 50000);
+    const outputTokens = randomBetween(2000, 35000);
+    const amount = Number((((inputTokens + outputTokens) / 1_000_000) * randomBetween(2, 8)).toFixed(4));
+    const hasError = randomBetween(1, 10) > 8;
+
+    await prisma.usageRecord.create({
+      data: {
+        userId,
+        providerId,
+        credentialId: activeCredential?.id,
+        model: providerModel,
+        providerModel,
+        requestCount,
+        inputTokens,
+        outputTokens,
+        statusCode: hasError ? 429 : 200,
+        errorType: hasError ? "rate_limit" : null,
+        recordedAt: now,
+        source: `connector:${providerKey}:official-mock`,
+      },
+    });
+
+    await prisma.spendRecord.create({
+      data: {
+        userId,
+        providerId,
+        credentialId: activeCredential?.id,
+        providerModel,
+        amount,
+        currency: "USD",
+        recordedAt: now,
+        source: `connector:${providerKey}:official-mock`,
+      },
+    });
+
+    if (activeCredential) {
+      await prisma.apiCredential.update({
+        where: { id: activeCredential.id },
+        data: { lastUsedAt: now },
+      });
+    }
+
+    written += 2;
+  }
+
+  return written;
 }
 
 export async function runSyncJob(params: {
@@ -63,7 +100,7 @@ export async function runSyncJob(params: {
 
     let records = 0;
     for (const p of providers) {
-      records += await mockProviderPull(params.userId, p.id);
+      records += await mockProviderPull(params.userId, p.id, p.key);
     }
 
     await prisma.syncJob.update({
