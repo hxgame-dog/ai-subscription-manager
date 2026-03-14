@@ -10,11 +10,11 @@ export const metadata: Metadata = {
 };
 
 const nav = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/subscriptions", label: "Subscriptions" },
-  { href: "/credentials", label: "API Keys" },
-  { href: "/alerts", label: "Alerts" },
-  { href: "/usage", label: "Usage Sync" },
+  { href: "/dashboard", label: "控制台", sublabel: "Dashboard" },
+  { href: "/subscriptions", label: "订阅管理", sublabel: "Subscriptions" },
+  { href: "/credentials", label: "密钥保险库", sublabel: "API Keys" },
+  { href: "/alerts", label: "提醒中心", sublabel: "Alerts" },
+  { href: "/usage", label: "同步记录", sublabel: "Usage Sync" },
 ];
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -23,25 +23,33 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="zh-CN">
       <body>
+        <div className="page-glow page-glow-a" />
+        <div className="page-glow page-glow-b" />
         <div className="shell">
           <aside className="sidebar">
-            <h1>AI Plan Manager</h1>
-            <p>Vercel + Neon</p>
+            <div className="brand-block">
+              <span className="brand-chip">AI Ops Panel</span>
+              <h1>订阅总控台</h1>
+              <p>Subscriptions, spend, keys, and sync status in one cockpit.</p>
+            </div>
             <nav>
               {nav.map((item) => (
                 <Link key={item.href} href={item.href} className="nav-item">
-                  {item.label}
+                  <span className="nav-label">{item.label}</span>
+                  <span className="nav-sublabel">{item.sublabel}</span>
                 </Link>
               ))}
             </nav>
-            <div style={{ marginTop: 20 }}>
+            <div className="auth-link-wrap">
               {session?.user ? (
                 <a className="nav-item" href="/api/auth/signout">
-                  Sign out
+                  <span className="nav-label">退出登录</span>
+                  <span className="nav-sublabel">Sign Out</span>
                 </a>
               ) : (
                 <a className="nav-item" href="/api/auth/signin">
-                  Sign in with Google
+                  <span className="nav-label">Google 登录</span>
+                  <span className="nav-sublabel">Sign In With Google</span>
                 </a>
               )}
             </div>
