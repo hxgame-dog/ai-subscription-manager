@@ -22,6 +22,14 @@ See [`DEPLOY_CHECKLIST.md`](/Users/hxgame/Documents/Playground/DEPLOY_CHECKLIST.
 5. Seed sample providers: `npm run db:seed`
 6. Start dev server: `npm run dev`
 
+## Publish Helper
+
+Use the helper below to add, commit, and push your current changes safely:
+
+```bash
+npm run publish -- "your commit message"
+```
+
 ## Security Notes
 
 - API keys are encrypted server-side using envelope encryption.

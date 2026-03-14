@@ -47,7 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <span className="nav-sublabel">Sign Out</span>
                 </a>
               ) : (
-                <a className="nav-item" href="/api/auth/signin">
+                <a className="nav-item" href="/api/auth/signin/google?callbackUrl=/dashboard">
                   <span className="nav-label">Google 登录</span>
                   <span className="nav-sublabel">Sign In With Google</span>
                 </a>
