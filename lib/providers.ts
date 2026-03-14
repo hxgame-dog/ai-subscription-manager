@@ -1,0 +1,24 @@
+import { prisma } from "@/lib/db";
+
+const DEFAULT_PROVIDERS = [
+  { key: "openai", name: "OpenAI (GPT)", supportsAutoSync: true },
+  { key: "gemini", name: "Google Gemini", supportsAutoSync: true },
+  { key: "anthropic", name: "Anthropic Claude", supportsAutoSync: true },
+  { key: "cursor", name: "Cursor", supportsAutoSync: false },
+  { key: "trae", name: "Trae", supportsAutoSync: false },
+  { key: "perplexity", name: "Perplexity", supportsAutoSync: true },
+  { key: "cohere", name: "Cohere", supportsAutoSync: true },
+  { key: "mistral", name: "Mistral", supportsAutoSync: true },
+  { key: "replicate", name: "Replicate", supportsAutoSync: true },
+  { key: "groq", name: "Groq", supportsAutoSync: true },
+];
+
+export async function ensureProviders() {
+  for (const provider of DEFAULT_PROVIDERS) {
+    await prisma.provider.upsert({
+      where: { key: provider.key },
+      update: { name: provider.name, supportsAutoSync: provider.supportsAutoSync },
+      create: provider,
+    });
+  }
+}
