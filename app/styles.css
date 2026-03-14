@@ -353,6 +353,47 @@ nav {
   gap: 16px;
 }
 
+.landing-card {
+  padding: 24px;
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 220px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    transform 120ms ease,
+    filter 120ms ease,
+    border-color 120ms ease;
+}
+
+.cta-button:hover {
+  transform: translateY(-1px);
+}
+
+.cta-button.primary {
+  color: #fff;
+  background: linear-gradient(180deg, #1167ff 0%, #0c56d8 100%);
+  box-shadow: 0 12px 24px rgba(17, 103, 255, 0.22);
+}
+
+.cta-button.secondary {
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.86);
+}
+
 .stack {
   display: grid;
   gap: 16px;
@@ -524,5 +565,13 @@ small {
 
   .row {
     grid-template-columns: 1fr;
+  }
+
+  .cta-row {
+    flex-direction: column;
+  }
+
+  .cta-button {
+    width: 100%;
   }
 }
