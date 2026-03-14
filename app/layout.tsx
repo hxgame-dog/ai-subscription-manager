@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { auth } from "@/lib/auth";
 import "./styles.css";
 
@@ -47,10 +48,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <span className="nav-sublabel">Sign Out</span>
                 </a>
               ) : (
-                <a className="nav-item" href="/api/auth/signin/google?callbackUrl=/dashboard">
-                  <span className="nav-label">Google 登录</span>
-                  <span className="nav-sublabel">Sign In With Google</span>
-                </a>
+                <GoogleSignInButton
+                  className="nav-item nav-button"
+                  label="Google 登录"
+                  sublabel="Sign In With Google"
+                />
               )}
             </div>
           </aside>

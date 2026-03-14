@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { auth } from "@/lib/auth";
 
 export default async function Home() {
@@ -42,9 +43,7 @@ export default async function Home() {
               进入控制台
             </Link>
           ) : (
-            <a className="cta-button primary" href="/api/auth/signin/google?callbackUrl=/dashboard">
-              使用 Google 登录
-            </a>
+            <GoogleSignInButton className="cta-button primary" label="使用 Google 登录" />
           )}
           <Link href="/dashboard" className="cta-button secondary">
             查看 Dashboard
