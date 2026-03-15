@@ -95,6 +95,7 @@ export default async function CredentialDetailPage({ params }: PageProps) {
           </div>
           <CredentialSecretPanel
             credentialId={data.credential.id}
+            status={data.credential.status}
             visibilityLevel={data.credential.visibilityLevel}
           />
         </section>

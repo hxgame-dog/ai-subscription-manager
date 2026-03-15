@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export function CredentialForm({ providers }: { providers: Array<{ id: string; name: string }> }) {
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -23,11 +26,18 @@ export function CredentialForm({ providers }: { providers: Array<{ id: string; n
     });
 
     setLoading(false);
-    setMessage(res.ok ? "API Key 已保存（加密）" : "保存失败");
+    if (!res.ok) {
+      setMessage("保存失败，请检查输入后重试。");
+      return;
+    }
+
+    setMessage("API Key 已保存（加密），列表已更新。");
+    formRef.current?.reset();
+    router.refresh();
   }
 
   return (
-    <form action={onSubmit}>
+    <form action={onSubmit} ref={formRef}>
       <select name="providerId" required>
         <option value="">选择平台</option>
         {providers.map((p) => (

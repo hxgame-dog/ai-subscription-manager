@@ -97,7 +97,11 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json()) as { credentialId: string; action: "ROTATE" | "DISABLE"; newSecret?: string };
+  const body = (await request.json()) as {
+    credentialId: string;
+    action: "ROTATE" | "DISABLE" | "ENABLE";
+    newSecret?: string;
+  };
 
   const existing = await prisma.apiCredential.findFirst({
     where: { id: body.credentialId, userId: session.user.id },
@@ -124,6 +128,23 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ id: updated.id, status: updated.status });
   }
 
+  if (body.action === "ENABLE") {
+    const updated = await prisma.apiCredential.update({
+      where: { id: existing.id },
+      data: { status: "ACTIVE" },
+    });
+
+    await writeAuditLog({
+      userId: session.user.id,
+      action: "CREDENTIAL_ENABLE",
+      resource: "ApiCredential",
+      resourceId: updated.id,
+      outcome: "SUCCESS",
+    });
+
+    return NextResponse.json({ id: updated.id, status: updated.status });
+  }
+
   if (!body.newSecret) {
     return NextResponse.json({ error: "newSecret is required for ROTATE" }, { status: 400 });
   }
@@ -132,13 +153,14 @@ export async function PATCH(request: Request) {
   const updated = await prisma.apiCredential.update({
     where: { id: existing.id },
     data: {
-      status: "ROTATED",
+      status: "ACTIVE",
       encryptedDek: encrypted.encryptedDek,
       encryptedValue: encrypted.encryptedValue,
       iv: encrypted.iv,
       authTag: encrypted.authTag,
       fingerprint: encrypted.fingerprint,
-      lastUsedAt: new Date(),
+      lastViewedAt: null,
+      lastCopiedAt: null,
     },
   });
 

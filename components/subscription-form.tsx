@@ -1,8 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
-export function SubscriptionForm({ providers }: { providers: Array<{ id: string; name: string }> }) {
+type SubscriptionFormProps = {
+  providers: Array<{ id: string; name: string }>;
+  initialValues?: {
+    subscriptionId: string;
+    providerId: string;
+    planName: string;
+    billingCycle: "MONTHLY" | "YEARLY" | "CUSTOM";
+    price: string;
+    currency: string;
+    renewalDate: string;
+    paymentMethod: string;
+    notes: string;
+  };
+  submitLabel?: string;
+  onSaved?: () => void;
+};
+
+export function SubscriptionForm({
+  providers,
+  initialValues,
+  submitLabel,
+  onSaved,
+}: SubscriptionFormProps) {
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -10,19 +35,32 @@ export function SubscriptionForm({ providers }: { providers: Array<{ id: string;
     setLoading(true);
     setMessage(null);
 
-    const payload = {
-      providerId: formData.get("providerId"),
-      planName: formData.get("planName"),
-      billingCycle: formData.get("billingCycle"),
-      price: Number(formData.get("price")),
-      currency: String(formData.get("currency") || "USD"),
-      renewalDate: new Date(String(formData.get("renewalDate"))).toISOString(),
-      paymentMethod: formData.get("paymentMethod"),
-      notes: formData.get("notes"),
-    };
+    const payload = initialValues
+      ? {
+          action: "UPDATE" as const,
+          subscriptionId: initialValues.subscriptionId,
+          providerId: formData.get("providerId"),
+          planName: formData.get("planName"),
+          billingCycle: formData.get("billingCycle"),
+          price: Number(formData.get("price")),
+          currency: String(formData.get("currency") || "USD"),
+          renewalDate: new Date(String(formData.get("renewalDate"))).toISOString(),
+          paymentMethod: formData.get("paymentMethod"),
+          notes: formData.get("notes"),
+        }
+      : {
+          providerId: formData.get("providerId"),
+          planName: formData.get("planName"),
+          billingCycle: formData.get("billingCycle"),
+          price: Number(formData.get("price")),
+          currency: String(formData.get("currency") || "USD"),
+          renewalDate: new Date(String(formData.get("renewalDate"))).toISOString(),
+          paymentMethod: formData.get("paymentMethod"),
+          notes: formData.get("notes"),
+        };
 
     const res = await fetch("/api/subscriptions", {
-      method: "POST",
+      method: initialValues ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
@@ -33,13 +71,18 @@ export function SubscriptionForm({ providers }: { providers: Array<{ id: string;
       return;
     }
 
-    setMessage("订阅已创建，刷新页面可见。 ");
+    setMessage(initialValues ? "订阅已更新。" : "订阅已创建，列表已更新。");
+    if (!initialValues) {
+      formRef.current?.reset();
+    }
+    router.refresh();
+    onSaved?.();
   }
 
   return (
-    <form action={onSubmit}>
+    <form action={onSubmit} ref={formRef}>
       <div className="row">
-        <select name="providerId" required>
+        <select defaultValue={initialValues?.providerId ?? ""} name="providerId" required>
           <option value="">选择平台</option>
           {providers.map((p) => (
             <option key={p.id} value={p.id}>
@@ -47,24 +90,32 @@ export function SubscriptionForm({ providers }: { providers: Array<{ id: string;
             </option>
           ))}
         </select>
-        <input name="planName" placeholder="Pro / Team" required />
+        <input defaultValue={initialValues?.planName} name="planName" placeholder="Pro / Team" required />
       </div>
       <div className="row">
-        <select name="billingCycle" defaultValue="MONTHLY">
+        <select name="billingCycle" defaultValue={initialValues?.billingCycle ?? "MONTHLY"}>
           <option value="MONTHLY">Monthly</option>
           <option value="YEARLY">Yearly</option>
           <option value="CUSTOM">Custom</option>
         </select>
-        <input name="price" placeholder="价格" type="number" step="0.01" min="0" required />
+        <input
+          defaultValue={initialValues?.price}
+          name="price"
+          placeholder="价格"
+          type="number"
+          step="0.01"
+          min="0"
+          required
+        />
       </div>
       <div className="row">
-        <input name="currency" defaultValue="USD" maxLength={3} />
-        <input name="renewalDate" type="date" required />
+        <input name="currency" defaultValue={initialValues?.currency ?? "USD"} maxLength={3} />
+        <input defaultValue={initialValues?.renewalDate} name="renewalDate" type="date" required />
       </div>
-      <input name="paymentMethod" placeholder="信用卡 / Apple Pay" />
-      <textarea name="notes" placeholder="备注" rows={3} />
+      <input defaultValue={initialValues?.paymentMethod} name="paymentMethod" placeholder="信用卡 / Apple Pay" />
+      <textarea defaultValue={initialValues?.notes} name="notes" placeholder="备注" rows={3} />
       <button disabled={loading} type="submit">
-        {loading ? "保存中..." : "创建订阅"}
+        {loading ? "保存中..." : submitLabel ?? "创建订阅"}
       </button>
       {message ? <small>{message}</small> : null}
     </form>

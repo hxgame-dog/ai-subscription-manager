@@ -1,4 +1,5 @@
 import { SubscriptionForm } from "@/components/subscription-form";
+import { SubscriptionTable } from "@/components/subscription-table";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ensureProviders } from "@/lib/providers";
@@ -58,50 +59,23 @@ export default async function SubscriptionsPage() {
               </div>
             </div>
           </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>平台</th>
-                  <th>套餐</th>
-                  <th>周期</th>
-                  <th>价格</th>
-                  <th>续费日</th>
-                  <th>状态</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <div className="cell-title">
-                        <strong>{item.provider.name}</strong>
-                        <span className="cell-subtitle">{item.provider.key}</span>
-                      </div>
-                    </td>
-                    <td>{item.planName}</td>
-                    <td>{item.billingCycle}</td>
-                    <td>
-                      {item.currency} {item.price.toString()}
-                    </td>
-                    <td>{item.renewalDate.toISOString().slice(0, 10)}</td>
-                    <td>
-                      <span className={`badge ${item.isActive ? "success" : "warning"}`}>
-                        {item.isActive ? "Active" : "Paused"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {list.length === 0 ? (
-                  <tr>
-                    <td colSpan={6}>
-                      <div className="empty-state">还没有订阅记录，先新增一条 GPT、Gemini 或 Cursor 试试。</div>
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
+          <SubscriptionTable
+            items={list.map((item) => ({
+              id: item.id,
+              providerId: item.providerId,
+              provider: item.provider.name,
+              providerKey: item.provider.key,
+              planName: item.planName,
+              billingCycle: item.billingCycle,
+              price: item.price.toString(),
+              currency: item.currency,
+              renewalDate: item.renewalDate.toISOString().slice(0, 10),
+              paymentMethod: item.paymentMethod,
+              notes: item.notes,
+              isActive: item.isActive,
+            }))}
+            providers={providers.map((p) => ({ id: p.id, name: p.name }))}
+          />
         </section>
       </div>
     </div>

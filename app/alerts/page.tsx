@@ -1,4 +1,5 @@
 import { AlertRuleForm } from "@/components/alert-rule-form";
+import { AlertRuleTable } from "@/components/alert-rule-table";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ensureProviders } from "@/lib/providers";
@@ -56,41 +57,18 @@ export default async function AlertsPage() {
                 </div>
               </div>
             </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>类型</th>
-                    <th>阈值</th>
-                    <th>提前天数</th>
-                    <th>渠道</th>
-                    <th>启用</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rules.map((r) => (
-                    <tr key={r.id}>
-                      <td>{r.type}</td>
-                      <td>{r.threshold ?? "-"}</td>
-                      <td>{r.renewalLeadDays ?? "-"}</td>
-                      <td>{r.channels.join(", ")}</td>
-                      <td>
-                        <span className={`badge ${r.isEnabled ? "success" : "warning"}`}>
-                          {r.isEnabled ? "Enabled" : "Disabled"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {rules.length === 0 ? (
-                    <tr>
-                      <td colSpan={5}>
-                        <div className="empty-state">还没有提醒规则，建议先配一个 80% 用量阈值告警。</div>
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
+            <AlertRuleTable
+              providers={providers.map((p) => ({ id: p.id, name: p.name }))}
+              rules={rules.map((r) => ({
+                id: r.id,
+                providerId: r.providerId,
+                type: r.type,
+                threshold: r.threshold,
+                renewalLeadDays: r.renewalLeadDays,
+                channels: r.channels,
+                isEnabled: r.isEnabled,
+              }))}
+            />
           </section>
 
           <section className="table-card">

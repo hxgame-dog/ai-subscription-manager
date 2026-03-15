@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { copyText } from "@/lib/clipboard";
@@ -7,9 +8,11 @@ import { copyText } from "@/lib/clipboard";
 type CredentialSecretPanelProps = {
   credentialId: string;
   visibilityLevel: "MASKED" | "REVEALABLE";
+  status: "ACTIVE" | "DISABLED" | "ROTATED";
 };
 
-export function CredentialSecretPanel({ credentialId, visibilityLevel }: CredentialSecretPanelProps) {
+export function CredentialSecretPanel({ credentialId, visibilityLevel, status }: CredentialSecretPanelProps) {
+  const router = useRouter();
   const [secret, setSecret] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -52,6 +55,58 @@ export function CredentialSecretPanel({ credentialId, visibilityLevel }: Credent
     setMessage("明文 Key 仅临时显示，请注意安全。");
   }
 
+  async function mutateCredential(action: "DISABLE" | "ENABLE" | "DELETE", promptText: string) {
+    const confirmed = window.confirm(promptText);
+    if (!confirmed) return;
+
+    setLoading(true);
+    setMessage(null);
+    const res = await fetch(`/api/credentials/${credentialId}`, {
+      method: action === "DELETE" ? "DELETE" : "PATCH",
+      headers: action === "DELETE" ? undefined : { "Content-Type": "application/json" },
+      body: action === "DELETE" ? undefined : JSON.stringify({ action }),
+    });
+    const data = await res.json();
+    setLoading(false);
+
+    if (!res.ok) {
+      setMessage(data.error || "操作失败");
+      return;
+    }
+
+    if (action === "DELETE") {
+      window.location.href = "/credentials";
+      return;
+    }
+
+    setMessage(action === "DISABLE" ? "Key 已停用。" : "Key 已重新启用。");
+    router.refresh();
+  }
+
+  async function rotateSecret() {
+    const nextSecret = window.prompt("请输入新的 API Key 明文：");
+    if (!nextSecret) return;
+
+    setLoading(true);
+    setMessage(null);
+    const res = await fetch(`/api/credentials/${credentialId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "ROTATE", newSecret: nextSecret }),
+    });
+    const data = await res.json();
+    setLoading(false);
+
+    if (!res.ok) {
+      setMessage(data.error || "轮换失败");
+      return;
+    }
+
+    setSecret(null);
+    setMessage("Key 已轮换并重新设为可用状态。");
+    router.refresh();
+  }
+
   return (
     <div className="stack">
       <div className="cta-row">
@@ -60,6 +115,32 @@ export function CredentialSecretPanel({ credentialId, visibilityLevel }: Credent
         </button>
         <button className="cta-button secondary" disabled={loading} onClick={() => accessSecret("COPY")} type="button">
           复制 Key
+        </button>
+      </div>
+      <div className="inline-actions">
+        <button className="mini-button" disabled={loading} onClick={() => rotateSecret()} type="button">
+          轮换
+        </button>
+        <button
+          className="mini-button"
+          disabled={loading}
+          onClick={() =>
+            mutateCredential(
+              status === "ACTIVE" ? "DISABLE" : "ENABLE",
+              status === "ACTIVE" ? "确认停用这把 Key？" : "确认重新启用这把 Key？",
+            )
+          }
+          type="button"
+        >
+          {status === "ACTIVE" ? "停用" : "启用"}
+        </button>
+        <button
+          className="mini-button"
+          disabled={loading}
+          onClick={() => mutateCredential("DELETE", "确认永久删除这把 Key？删除后无法恢复。")}
+          type="button"
+        >
+          删除
         </button>
       </div>
       {secret ? <div className="secret-box">{secret}</div> : null}

@@ -32,3 +32,11 @@ export const alertRuleSchema = z.object({
   channels: z.array(z.enum(["IN_APP", "EMAIL"])).min(1),
   isEnabled: z.boolean().default(true),
 });
+
+export const subscriptionUpdateSchema = subscriptionSchema.extend({
+  subscriptionId: z.string().min(1),
+});
+
+export const alertRuleUpdateSchema = alertRuleSchema.extend({
+  ruleId: z.string().min(1),
+});

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { copyText } from "@/lib/clipboard";
@@ -18,6 +19,7 @@ type CredentialRow = {
 };
 
 export function CredentialVaultTable({ items }: { items: CredentialRow[] }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [providerFilter, setProviderFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -70,6 +72,50 @@ export function CredentialVaultTable({ items }: { items: CredentialRow[] }) {
     } catch {
       setMessage("已拿到明文 Key，但浏览器未能写入剪贴板。");
     }
+  }
+
+  async function changeStatus(credentialId: string, action: "DISABLE" | "ENABLE") {
+    const confirmed = window.confirm(action === "DISABLE" ? "确认停用这把 Key？" : "确认重新启用这把 Key？");
+    if (!confirmed) return;
+
+    setLoadingId(credentialId);
+    setMessage(null);
+    const res = await fetch(`/api/credentials/${credentialId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    const data = await res.json();
+    setLoadingId(null);
+
+    if (!res.ok) {
+      setMessage(data.error || "状态更新失败");
+      return;
+    }
+
+    setMessage(action === "DISABLE" ? "Key 已停用。" : "Key 已重新启用。");
+    router.refresh();
+  }
+
+  async function deleteCredential(credentialId: string) {
+    const confirmed = window.confirm("确认永久删除这把 Key？删除后无法恢复。");
+    if (!confirmed) return;
+
+    setLoadingId(credentialId);
+    setMessage(null);
+    const res = await fetch(`/api/credentials/${credentialId}`, {
+      method: "DELETE",
+    });
+    const data = await res.json();
+    setLoadingId(null);
+
+    if (!res.ok) {
+      setMessage(data.error || "删除失败");
+      return;
+    }
+
+    setMessage("Key 已删除。");
+    router.refresh();
   }
 
   return (
@@ -157,6 +203,22 @@ export function CredentialVaultTable({ items }: { items: CredentialRow[] }) {
                       type="button"
                     >
                       {loadingId === item.id ? "复制中..." : "复制"}
+                    </button>
+                    <button
+                      className="mini-button"
+                      disabled={loadingId === item.id}
+                      onClick={() => changeStatus(item.id, item.status === "ACTIVE" ? "DISABLE" : "ENABLE")}
+                      type="button"
+                    >
+                      {item.status === "ACTIVE" ? "停用" : "启用"}
+                    </button>
+                    <button
+                      className="mini-button"
+                      disabled={loadingId === item.id}
+                      onClick={() => deleteCredential(item.id)}
+                      type="button"
+                    >
+                      删除
                     </button>
                   </div>
                 </td>
