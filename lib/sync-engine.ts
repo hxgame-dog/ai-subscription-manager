@@ -2,6 +2,7 @@ import { subDays } from "date-fns";
 
 import { prisma } from "@/lib/db";
 import { sendNotification } from "@/lib/notifications";
+import { syncProviderUsage } from "@/lib/provider-connectors";
 
 function randomBetween(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1) + min);
@@ -100,6 +101,17 @@ export async function runSyncJob(params: {
 
     let records = 0;
     for (const p of providers) {
+      const synced = await syncProviderUsage({
+        userId: params.userId,
+        providerId: p.id,
+        providerKey: p.key,
+      });
+
+      if (synced.handled) {
+        records += synced.records;
+        continue;
+      }
+
       records += await mockProviderPull(params.userId, p.id, p.key);
     }
 

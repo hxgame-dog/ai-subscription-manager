@@ -36,6 +36,19 @@ npm run publish -- "your commit message"
 - Only masked key values are ever returned to the UI.
 - Every sensitive action is written to `audit_logs`.
 
+## Provider Sync Config
+
+- `CURSOR_ADMIN_API_KEY`
+  Enables real Cursor usage event sync from the official Admin API.
+- `GEMINI_GCP_PROJECT_ID`
+  Google Cloud project id for Gemini request-count monitoring.
+- `GOOGLE_SERVICE_ACCOUNT_JSON`
+  Service account JSON with Monitoring and BigQuery access.
+- `GEMINI_BILLING_EXPORT_PROJECT_ID`
+- `GEMINI_BILLING_EXPORT_DATASET`
+- `GEMINI_BILLING_EXPORT_TABLE`
+  Optional BigQuery billing export source for Gemini spend and billing-derived token estimates.
+
 ## Cron
 
 Vercel triggers `/api/cron/sync` every 2 hours. Add `CRON_SECRET` if you want to gate cron calls.

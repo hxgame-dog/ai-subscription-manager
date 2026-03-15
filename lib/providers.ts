@@ -4,7 +4,7 @@ const DEFAULT_PROVIDERS = [
   { key: "openai", name: "OpenAI (GPT)", supportsAutoSync: true },
   { key: "gemini", name: "Google Gemini", supportsAutoSync: true },
   { key: "anthropic", name: "Anthropic Claude", supportsAutoSync: true },
-  { key: "cursor", name: "Cursor", supportsAutoSync: false },
+  { key: "cursor", name: "Cursor", supportsAutoSync: true },
   { key: "trae", name: "Trae", supportsAutoSync: false },
   { key: "perplexity", name: "Perplexity", supportsAutoSync: true },
   { key: "cohere", name: "Cohere", supportsAutoSync: true },
