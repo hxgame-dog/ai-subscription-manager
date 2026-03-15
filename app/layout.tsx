@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
+import { SidebarNav } from "@/components/sidebar-nav";
 import { auth } from "@/lib/auth";
 import "./styles.css";
 
@@ -95,17 +95,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <p className="section-kicker">Navigation</p>
               <p>优先把平台、订阅、密钥和同步放在固定位置，减少切换成本。</p>
             </div>
-            <nav>
-              {nav.map((item) => (
-                <Link key={item.href} href={item.href} className="nav-item">
-                  <span className="nav-main">
-                    <NavIcon kind={item.icon} />
-                    <span className="nav-label">{item.label}</span>
-                  </span>
-                  <span className="nav-sublabel">{item.sublabel}</span>
-                </Link>
-              ))}
-            </nav>
+            <SidebarNav
+              items={nav.map((item) => ({
+                ...item,
+                tone:
+                  item.icon === "dashboard"
+                    ? "dashboard"
+                    : item.icon === "subscriptions"
+                      ? "subscriptions"
+                      : item.icon === "keys"
+                        ? "vault"
+                        : item.icon === "alerts"
+                          ? "alerts"
+                          : "sync",
+                icon: <NavIcon kind={item.icon} />,
+              }))}
+            />
             <div className="auth-link-wrap">
               {session?.user ? (
                 <a className="nav-item" href="/api/auth/signout">

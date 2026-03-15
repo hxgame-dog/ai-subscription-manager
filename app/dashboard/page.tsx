@@ -18,7 +18,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="page-stack">
-      <section className="page-hero">
+      <section className="page-hero page-hero-dashboard">
         <div className="hero-copy">
           <p className="section-kicker">Overview</p>
           <h1>AI 资产控制台</h1>
@@ -43,7 +43,7 @@ export default async function DashboardPage() {
         </section>
       ) : null}
 
-      <section className="workspace-section">
+      <section className="workspace-section workspace-section-spend">
         <div className="workspace-section-head">
           <div>
             <p className="section-kicker">Workspace block</p>
@@ -147,7 +147,7 @@ export default async function DashboardPage() {
         </section>
       </section>
 
-      <section className="workspace-section">
+      <section className="workspace-section workspace-section-assets">
         <div className="workspace-section-head">
           <div>
             <p className="section-kicker">Workspace block</p>
@@ -280,7 +280,7 @@ export default async function DashboardPage() {
         </section>
       </section>
 
-      <section className="workspace-section">
+      <section className="workspace-section workspace-section-status">
         <div className="workspace-section-head">
           <div>
             <p className="section-kicker">Workspace block</p>

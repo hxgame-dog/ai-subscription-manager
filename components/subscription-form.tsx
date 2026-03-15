@@ -77,7 +77,7 @@ export function SubscriptionForm({
   }
 
   return (
-    <form action={onSubmit} ref={formRef}>
+    <form action={onSubmit} className="wide-form" ref={formRef}>
       <div className="row">
         <select defaultValue={initialValues?.providerId ?? ""} name="providerId" required>
           <option value="">选择平台</option>

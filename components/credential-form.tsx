@@ -37,22 +37,26 @@ export function CredentialForm({ providers }: { providers: Array<{ id: string; n
   }
 
   return (
-    <form action={onSubmit} ref={formRef}>
-      <select name="providerId" required>
-        <option value="">选择平台</option>
-        {providers.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-          </option>
-        ))}
-      </select>
-      <input name="label" placeholder="工作账号 / 个人账号" required />
-      <input name="secret" placeholder="sk-..." required />
+    <form action={onSubmit} className="wide-form" ref={formRef}>
+      <div className="row">
+        <select name="providerId" required>
+          <option value="">选择平台</option>
+          {providers.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <input name="label" placeholder="工作账号 / 个人账号" required />
+      </div>
+      <div className="row">
+        <input name="secret" placeholder="sk-..." required />
+        <select name="visibilityLevel" defaultValue="REVEALABLE">
+          <option value="REVEALABLE">允许二次确认后查看明文</option>
+          <option value="MASKED">仅允许脱敏展示</option>
+        </select>
+      </div>
       <textarea name="notes" placeholder="用途备注，比如个人开发 / 生产监控" rows={3} />
-      <select name="visibilityLevel" defaultValue="REVEALABLE">
-        <option value="REVEALABLE">允许二次确认后查看明文</option>
-        <option value="MASKED">仅允许脱敏展示</option>
-      </select>
       <div className="preset-hint">
         常见平台已预置：OpenAI、Gemini、Claude、Cursor、DeepSeek、OpenRouter、Groq、Perplexity 等。
       </div>
