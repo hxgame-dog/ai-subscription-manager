@@ -33,6 +33,7 @@ export async function getDashboardOverview(userId: string) {
     activeKeys,
     subscriptions,
     activeCredentialProviders,
+    recentCredentialActivity,
     upcomingRenewals,
     latestSyncJob,
     trustedUsageCount,
@@ -63,6 +64,12 @@ export async function getDashboardOverview(userId: string) {
       prisma.apiCredential.findMany({
         where: { userId, status: "ACTIVE" },
         select: { provider: { select: { name: true } } },
+      }),
+      prisma.apiCredential.findMany({
+        where: { userId },
+        include: { provider: true },
+        orderBy: [{ lastViewedAt: "desc" }, { lastCopiedAt: "desc" }, { updatedAt: "desc" }],
+        take: 8,
       }),
       prisma.subscription.findMany({
         where: {
@@ -101,6 +108,49 @@ export async function getDashboardOverview(userId: string) {
   const trackedApis = [...subscriptions.map((item) => item.provider.name), ...activeCredentialProviders.map((item) => item.provider.name)]
     .filter((name, index, array) => array.indexOf(name) === index)
     .sort((a, b) => a.localeCompare(b));
+  const topSubscriptions = subscriptions
+    .map((item) => {
+      const price = Number(item.price);
+      const monthlyCost = item.billingCycle === "YEARLY" ? price / 12 : price;
+      return {
+        provider: item.provider.name,
+        monthlyCost,
+        billingCycle: item.billingCycle,
+      };
+    })
+    .sort((a, b) => b.monthlyCost - a.monthlyCost)
+    .slice(0, 5);
+  const recentCredentialEvents = recentCredentialActivity
+    .map((item) => {
+      const lastActionAt =
+        item.lastCopiedAt && item.lastViewedAt
+          ? item.lastCopiedAt > item.lastViewedAt
+            ? item.lastCopiedAt
+            : item.lastViewedAt
+          : item.lastCopiedAt ?? item.lastViewedAt;
+      const lastActionType =
+        item.lastCopiedAt && item.lastViewedAt
+          ? item.lastCopiedAt > item.lastViewedAt
+            ? "copied"
+            : "viewed"
+          : item.lastCopiedAt
+            ? "copied"
+            : item.lastViewedAt
+              ? "viewed"
+              : null;
+
+      return {
+        id: item.id,
+        provider: item.provider.name,
+        label: item.label,
+        status: item.status,
+        lastActionAt,
+        lastActionType,
+      };
+    })
+    .filter((item) => item.lastActionAt)
+    .sort((a, b) => b.lastActionAt!.getTime() - a.lastActionAt!.getTime())
+    .slice(0, 6);
 
   return {
     today: {
@@ -128,6 +178,8 @@ export async function getDashboardOverview(userId: string) {
     monthlySubscriptionSpend,
     trustedUsageCount,
     trackedApis,
+    topSubscriptions,
+    recentCredentialEvents,
     latestSyncJob: latestSyncJob
       ? {
           status: latestSyncJob.status,

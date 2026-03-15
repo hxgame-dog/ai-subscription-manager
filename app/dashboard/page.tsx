@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { getDashboardOverview, getSpendSeries, getTokenSeries } from "@/lib/dashboard";
+import { getDashboardOverview, getTokenSeries } from "@/lib/dashboard";
 import { ensureProviders } from "@/lib/providers";
 
 export default async function DashboardPage() {
@@ -10,10 +10,9 @@ export default async function DashboardPage() {
 
   await ensureProviders();
 
-  const [overview, tokenStats, spendStats] = await Promise.all([
+  const [overview, tokenStats] = await Promise.all([
     getDashboardOverview(session.user.id),
     getTokenSeries(session.user.id, 7),
-    getSpendSeries(session.user.id, 30),
   ]);
   const hasTrustedUsage = overview.trustedUsageCount > 0;
 
@@ -111,25 +110,35 @@ export default async function DashboardPage() {
             <div className="card">
               <div className="section-head">
                 <div>
-                  <h2>30 天费用趋势</h2>
-                  <p>这里展示的是同步落表的费用记录；如果还没接真实平台，数据可能只是示意。</p>
+                  <h2>本月成本 Top 订阅</h2>
+                  <p>先看哪几个工具是月成本主力，后面再决定要不要优化订阅结构。</p>
                 </div>
               </div>
               <div className="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>日期</th>
-                      <th>费用</th>
+                      <th>平台</th>
+                      <th>周期</th>
+                      <th>月成本</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {spendStats.series.slice(-10).map((entry) => (
-                      <tr key={entry.day}>
-                        <td>{entry.day}</td>
-                        <td>${entry.amount.toFixed(4)}</td>
+                    {overview.topSubscriptions.length ? (
+                      overview.topSubscriptions.map((entry) => (
+                        <tr key={`${entry.provider}-${entry.billingCycle}`}>
+                          <td>{entry.provider}</td>
+                          <td>{entry.billingCycle}</td>
+                          <td>${entry.monthlyCost.toFixed(2)}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={3}>
+                          <div className="empty-state">还没有有效订阅，先从常用工具开始录入月费或年费。</div>
+                        </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -189,6 +198,49 @@ export default async function DashboardPage() {
             </div>
           </article>
 
+          <article className="table-card">
+            <div className="card">
+              <div className="section-head">
+                <div>
+                  <h2>最近被查看 / 复制的 Key</h2>
+                  <p>帮助你快速看到最近常用或刚刚被操作过的 API 资产，减少回忆成本。</p>
+                </div>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Key</th>
+                      <th>最近动作</th>
+                      <th>时间</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {overview.recentCredentialEvents.length ? (
+                      overview.recentCredentialEvents.map((item) => (
+                        <tr key={item.id}>
+                          <td>
+                            {item.provider} · {item.label}
+                          </td>
+                          <td>{item.lastActionType === "copied" ? "复制明文" : "查看明文"}</td>
+                          <td>{item.lastActionAt?.toISOString().slice(0, 16).replace("T", " ")}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={3}>
+                          <div className="empty-state">还没有查看或复制记录。你复制或查看明文后，这里会自动出现最近活动。</div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section className="grid cols-2">
           <article className="table-card">
             <div className="card">
               <div className="section-head">
@@ -319,13 +371,6 @@ export default async function DashboardPage() {
                       <tr>
                         <td colSpan={2}>
                           <div className="empty-state">已经接入真实同步，但还没有与具体 Key 关联的使用记录。</div>
-                        </td>
-                      </tr>
-                    ) : null}
-                    {!hasTrustedUsage ? null : !spendStats.topProviders.length ? (
-                      <tr>
-                        <td colSpan={2}>
-                          <div className="empty-state">还没有费用记录，先同步一次使用数据。</div>
                         </td>
                       </tr>
                     ) : null}
