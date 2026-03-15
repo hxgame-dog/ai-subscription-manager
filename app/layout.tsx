@@ -7,7 +7,7 @@ import "./styles.css";
 
 export const metadata: Metadata = {
   title: "AI Subscription Manager",
-  description: "Manage AI subscriptions, keys, and usage in one place.",
+  description: "Manage AI subscriptions, keys, and usage in a calm workspace.",
 };
 
 const nav = [
@@ -24,14 +24,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="zh-CN">
       <body>
-        <div className="page-glow page-glow-a" />
-        <div className="page-glow page-glow-b" />
         <div className="shell">
           <aside className="sidebar">
             <div className="brand-block">
-              <span className="brand-chip">AI Ops Panel</span>
+              <span className="brand-chip">AI Workspace</span>
               <h1>订阅总控台</h1>
-              <p>Subscriptions, spend, keys, and sync status in one cockpit.</p>
+              <p>Subscriptions, spend, keys, and sync notes in one quiet workspace.</p>
             </div>
             <nav>
               {nav.map((item) => (

@@ -89,7 +89,10 @@ export function CredentialVaultTable({ items }: { items: CredentialRow[] }) {
         </select>
       </div>
 
-      {message ? <small>{message}</small> : null}
+      <div className="table-tools">
+        <span>{filtered.length} 条结果</span>
+        {message ? <small>{message}</small> : <span>复制动作会写入审计日志</span>}
+      </div>
 
       <div className="table-wrap">
         <table>

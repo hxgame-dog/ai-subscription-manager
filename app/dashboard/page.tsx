@@ -20,39 +20,40 @@ export default async function DashboardPage() {
     <div className="page-stack">
       <section className="page-hero">
         <div className="hero-copy">
+          <p className="section-kicker">Overview</p>
           <h1>AI 资产控制台</h1>
           <p>
-            从这里快速看清楚你的订阅状态、Key 资产、Token 趋势和费用分布。目标不是一次做全，而是先让每天常用的信息一眼可见。
+            今天最值得看的，是你的 Key 是否活跃、最近 7 天的 Token 变化、以及本月费用是否还在预期内。先把最常用的信息摆在桌面上。
           </p>
         </div>
         <div className="hero-meta">
           <div className="meta-chip">
-            Product focus <strong>Keys + Spend + Sync</strong>
+            Last 7d <strong>{overview.week.totalTokens} tokens</strong>
           </div>
           <div className="meta-chip">
-            Active credentials <strong>{overview.activeKeys}</strong>
+            Keys active <strong>{overview.activeKeys}</strong>
           </div>
         </div>
       </section>
 
       <section className="grid cols-4">
         <article className="stat-card">
-          <span className="stat-kicker">Today Tokens</span>
+          <span className="stat-kicker">Today tokens</span>
           <strong className="stat-value">{overview.today.totalTokens}</strong>
           <p className="stat-note">今日输入与输出 Token 总量。</p>
         </article>
         <article className="stat-card">
-          <span className="stat-kicker">Month Spend</span>
+          <span className="stat-kicker">Month spend</span>
           <strong className="stat-value">${overview.month.spend.toFixed(4)}</strong>
           <p className="stat-note">最近 30 天累计费用（USD）。</p>
         </article>
         <article className="stat-card">
-          <span className="stat-kicker">Active Plans</span>
+          <span className="stat-kicker">Active plans</span>
           <strong className="stat-value">{overview.activeSubscriptions}</strong>
           <p className="stat-note">当前正在追踪的有效订阅数。</p>
         </article>
         <article className="stat-card">
-          <span className="stat-kicker">Week Requests</span>
+          <span className="stat-kicker">Week requests</span>
           <strong className="stat-value">{overview.week.requests}</strong>
           <p className="stat-note">最近 7 天累计请求次数。</p>
         </article>
@@ -61,11 +62,11 @@ export default async function DashboardPage() {
       <section className="grid cols-3">
         <article className="insight-card">
           <div className="section-head">
-            <div>
-              <h2>7 天 Token 趋势</h2>
-              <p>每天的 Token 消耗可以快速暴露平台切换、异常增长与调用波动。</p>
+              <div>
+                <h2>7 天 Token 趋势</h2>
+                <p>每天看一眼，就能知道最近有没有新的平台切换、消耗抬升或调用波动。</p>
+              </div>
             </div>
-          </div>
           {tokenStats.series.map((entry) => (
             <div className="metric-line" key={entry.day}>
               <span>{entry.day}</span>
@@ -76,11 +77,11 @@ export default async function DashboardPage() {
 
         <article className="insight-card">
           <div className="section-head">
-            <div>
-              <h2>平台排行</h2>
-              <p>优先看清楚哪个平台和哪个模型正在消耗最多资源。</p>
+              <div>
+                <h2>平台排行</h2>
+                <p>先分清楚哪几个平台最常被使用，再决定后面要不要做更细的自动统计。</p>
+              </div>
             </div>
-          </div>
           {tokenStats.topProviders.length ? (
             tokenStats.topProviders.map((entry) => (
               <div className="metric-line" key={entry.providerId}>
@@ -95,11 +96,11 @@ export default async function DashboardPage() {
 
         <article className="insight-card">
           <div className="section-head">
-            <div>
-              <h2>关键资产</h2>
-              <p>按 Key、模型、订阅到期和费用，快速定位今天最值得关注的对象。</p>
+              <div>
+                <h2>关键资产</h2>
+                <p>把最值得关注的 Key、模型和即将续费的项目放在一起，减少来回查找。</p>
+              </div>
             </div>
-          </div>
           {tokenStats.topCredentials.slice(0, 3).map((entry) => (
             <div className="metric-line" key={entry.credentialId}>
               <span>{entry.label}</span>

@@ -26,15 +26,16 @@ export default async function CredentialsPage() {
     <div className="page-stack">
       <section className="page-hero">
         <div className="hero-copy">
+          <p className="section-kicker">Vault</p>
           <h1>密钥保险库</h1>
-          <p>把可用 API Key 统一加密托管，避免散落在便签、浏览器和本地脚本里。</p>
+          <p>把常用 API Key 放到一个固定位置。录入时有上下文，复制时有审计，查找时不需要翻脚本和便签。</p>
         </div>
         <div className="hero-meta">
           <div className="meta-chip">
             Active keys <strong>{list.filter((item) => item.status === "ACTIVE").length}</strong>
           </div>
           <div className="meta-chip">
-            Vault mode <strong>Encrypted</strong>
+            Last added <strong>{list[0]?.provider.name ?? "No records"}</strong>
           </div>
         </div>
       </section>
@@ -42,11 +43,11 @@ export default async function CredentialsPage() {
       <div className="split-layout">
         <section className="card">
           <div className="section-head">
-            <div>
-              <h2>新增 API Key</h2>
-              <p>保存后只展示脱敏信息，数据库里不会记录明文。</p>
+              <div>
+                <h2>新增 API Key</h2>
+                <p>保存后默认只展示脱敏信息。需要查看或复制明文时，再做一次确认。</p>
+              </div>
             </div>
-          </div>
           <CredentialForm providers={providers.map((p) => ({ id: p.id, name: p.name }))} />
         </section>
 
@@ -55,7 +56,7 @@ export default async function CredentialsPage() {
             <div className="section-head">
               <div>
                 <h2>Key 列表</h2>
-                <p>现在支持搜索、状态筛选和列表内一键复制，日常使用会顺手很多。</p>
+                <p>更像数据库表格来使用它：搜索、筛选、查看详情、快速复制，主次会更清楚。</p>
               </div>
             </div>
           </div>
