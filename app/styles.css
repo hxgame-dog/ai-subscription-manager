@@ -34,6 +34,7 @@ body {
 body {
   color: var(--text);
   font-family: "IBM Plex Sans", "Noto Sans SC", sans-serif;
+  font-size: 15px;
   line-height: 1.5;
 }
 
@@ -85,7 +86,7 @@ a {
 
 .sidebar h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.05em;
   line-height: 1.05;
@@ -94,7 +95,7 @@ a {
 .sidebar p {
   margin: 0;
   color: var(--text-soft);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.7;
 }
 
@@ -133,14 +134,14 @@ nav {
 }
 
 .nav-label {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
 .nav-sublabel {
   color: var(--text-faint);
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -151,7 +152,9 @@ nav {
 
 .content {
   padding: 32px 36px 48px;
-  max-width: 1280px;
+  width: min(100%, 1500px);
+  max-width: 1500px;
+  margin: 0 auto;
 }
 
 .page-stack {
@@ -178,7 +181,7 @@ nav {
 .hero-copy h1,
 .hero-copy h2 {
   margin: 0;
-  font-size: 36px;
+  font-size: 32px;
   line-height: 1.04;
   letter-spacing: -0.06em;
 }
@@ -187,7 +190,7 @@ nav {
   margin: 0;
   max-width: 760px;
   color: var(--text-soft);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.7;
 }
 
@@ -211,7 +214,7 @@ nav {
   border-radius: 999px;
   background: var(--surface-muted);
   color: var(--text-faint);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -271,7 +274,7 @@ nav {
 .stat-card h2,
 .insight-card h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 650;
   line-height: 1.15;
   letter-spacing: -0.04em;
@@ -298,7 +301,7 @@ nav {
 .section-kicker {
   margin: 0 0 10px;
   color: var(--text-faint);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -308,7 +311,7 @@ nav {
   display: block;
   margin-bottom: 18px;
   color: var(--text-faint);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -316,7 +319,7 @@ nav {
 
 .stat-value {
   display: block;
-  font-size: 34px;
+  font-size: 30px;
   font-weight: 700;
   letter-spacing: -0.06em;
   line-height: 1;
@@ -442,7 +445,7 @@ nav {
   gap: 12px;
   padding: 0 18px 14px;
   color: var(--text-faint);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .tag-list {
@@ -458,7 +461,7 @@ nav {
   background: var(--surface-muted);
   word-break: break-all;
   font-family: "IBM Plex Mono", monospace;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .inline-actions {
@@ -479,7 +482,7 @@ nav {
   background: var(--surface);
   color: var(--text-soft);
   text-decoration: none;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   box-shadow: none;
 }
@@ -504,7 +507,7 @@ nav {
   border: 1px solid var(--border);
   background: var(--surface-muted);
   color: var(--text-soft);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.6;
 }
 
@@ -546,13 +549,13 @@ td {
   border-bottom: 1px solid var(--border);
   padding: 14px 16px;
   text-align: left;
-  font-size: 14px;
+  font-size: 13px;
   vertical-align: top;
 }
 
 th {
   color: var(--text-faint);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -574,13 +577,13 @@ tbody tr:last-child td {
 }
 
 .cell-title strong {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .cell-subtitle {
   color: var(--text-faint);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .badge {
@@ -589,7 +592,7 @@ tbody tr:last-child td {
   width: fit-content;
   padding: 4px 9px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -636,6 +639,7 @@ button {
   border-radius: 12px;
   border: 1px solid var(--border-strong);
   font: inherit;
+  font-size: 14px;
 }
 
 input,
@@ -683,6 +687,7 @@ form {
 
 small {
   color: var(--text-faint);
+  font-size: 12px;
 }
 
 .row {
@@ -734,7 +739,7 @@ small {
 
   .hero-copy h1,
   .hero-copy h2 {
-    font-size: 28px;
+    font-size: 26px;
   }
 
   .row,

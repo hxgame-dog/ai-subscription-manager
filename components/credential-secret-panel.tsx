@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { copyText } from "@/lib/clipboard";
+
 type CredentialSecretPanelProps = {
   credentialId: string;
   visibilityLevel: "MASKED" | "REVEALABLE";
@@ -38,8 +40,12 @@ export function CredentialSecretPanel({ credentialId, visibilityLevel }: Credent
 
     setSecret(data.secret);
     if (action === "COPY") {
-      await navigator.clipboard.writeText(data.secret);
-      setMessage("明文 Key 已复制到剪贴板，并已记录审计日志。");
+      try {
+        await copyText(data.secret);
+        setMessage("明文 Key 已复制到剪贴板，并已记录审计日志。");
+      } catch {
+        setMessage("已拿到明文 Key，但浏览器未能写入剪贴板。");
+      }
       return;
     }
 

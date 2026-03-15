@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { copyText } from "@/lib/clipboard";
+
 type CredentialRow = {
   id: string;
   provider: string;
@@ -62,7 +64,12 @@ export function CredentialVaultTable({ items }: { items: CredentialRow[] }) {
       return;
     }
 
-    setMessage("明文 Key 已复制到剪贴板。");
+    try {
+      await copyText(data.secret);
+      setMessage("明文 Key 已复制到剪贴板。");
+    } catch {
+      setMessage("已拿到明文 Key，但浏览器未能写入剪贴板。");
+    }
   }
 
   return (
