@@ -20,15 +20,14 @@ export default async function DashboardPage() {
     <div className="page-stack">
       <section className="page-hero">
         <div className="hero-copy">
-          <h1>AI 资产总览</h1>
+          <h1>AI 资产控制台</h1>
           <p>
-            用一个视图跟踪订阅、花费、密钥可用性与同步健康度。这个页面更像你的 AI
-            运维驾驶舱，而不是普通后台首页。
+            从这里快速看清楚你的订阅状态、Key 资产、Token 趋势和费用分布。目标不是一次做全，而是先让每天常用的信息一眼可见。
           </p>
         </div>
         <div className="hero-meta">
           <div className="meta-chip">
-            Current stack <strong>Vercel + Neon</strong>
+            Product focus <strong>Keys + Spend + Sync</strong>
           </div>
           <div className="meta-chip">
             Active credentials <strong>{overview.activeKeys}</strong>
@@ -98,7 +97,7 @@ export default async function DashboardPage() {
           <div className="section-head">
             <div>
               <h2>关键资产</h2>
-              <p>按 Key、模型、订阅到期和费用，快速定位最需要关注的对象。</p>
+              <p>按 Key、模型、订阅到期和费用，快速定位今天最值得关注的对象。</p>
             </div>
           </div>
           {tokenStats.topCredentials.slice(0, 3).map((entry) => (

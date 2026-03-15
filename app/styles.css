@@ -412,6 +412,13 @@ nav {
   gap: 16px;
 }
 
+.filter-bar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) minmax(140px, 0.7fr) minmax(140px, 0.7fr);
+  gap: 12px;
+  padding: 0 18px 18px;
+}
+
 .tag-list {
   display: flex;
   flex-wrap: wrap;
@@ -425,6 +432,66 @@ nav {
   background: rgba(255, 255, 255, 0.84);
   word-break: break-all;
   font-family: "IBM Plex Mono", monospace;
+}
+
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mini-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.primary-mini {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(180deg, #1167ff 0%, #0c56d8 100%);
+}
+
+.preset-hint {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px dashed var(--line-strong);
+  background: rgba(255, 255, 255, 0.66);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.landing-metrics {
+  margin-top: 18px;
+}
+
+.soft-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.soft-card strong {
+  font-size: 14px;
+}
+
+.soft-card span {
+  color: var(--muted);
+  line-height: 1.55;
 }
 
 .table-wrap {
@@ -570,6 +637,7 @@ small {
 
   .page-hero,
   .split-layout,
+  .filter-bar,
   .grid.cols-4,
   .grid.cols-3,
   .grid.cols-2 {

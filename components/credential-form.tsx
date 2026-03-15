@@ -43,6 +43,9 @@ export function CredentialForm({ providers }: { providers: Array<{ id: string; n
         <option value="REVEALABLE">允许二次确认后查看明文</option>
         <option value="MASKED">仅允许脱敏展示</option>
       </select>
+      <div className="preset-hint">
+        常见平台已预置：OpenAI、Gemini、Claude、Cursor、DeepSeek、OpenRouter、Groq、Perplexity 等。
+      </div>
       <button disabled={loading} type="submit">
         {loading ? "保存中..." : "新增 API Key"}
       </button>

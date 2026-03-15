@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { CredentialForm } from "@/components/credential-form";
+import { CredentialVaultTable } from "@/components/credential-vault-table";
 import { auth } from "@/lib/auth";
 import { decryptSecret, maskSecret } from "@/lib/crypto";
 import { prisma } from "@/lib/db";
@@ -56,63 +55,23 @@ export default async function CredentialsPage() {
             <div className="section-head">
               <div>
                 <h2>Key 列表</h2>
-                <p>优先保证状态清晰，便于之后接入轮换、禁用和审计能力。</p>
+                <p>现在支持搜索、状态筛选和列表内一键复制，日常使用会顺手很多。</p>
               </div>
             </div>
           </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>平台</th>
-                  <th>标签</th>
-                  <th>指纹</th>
-                  <th>脱敏展示</th>
-                  <th>状态</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <div className="cell-title">
-                        <strong>
-                          <Link href={`/credentials/${item.id}`}>{item.provider.name}</Link>
-                        </strong>
-                        <span className="cell-subtitle">{item.provider.key}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="cell-title">
-                        <strong>
-                          <Link href={`/credentials/${item.id}`}>{item.label}</Link>
-                        </strong>
-                        <span className="cell-subtitle">{item.notes || "无备注"}</span>
-                      </div>
-                    </td>
-                    <td>{item.fingerprint}</td>
-                    <td>{maskSecret(decryptSecret(item))}</td>
-                    <td>
-                      <span
-                        className={`badge ${
-                          item.status === "ACTIVE" ? "success" : item.status === "DISABLED" ? "warning" : "info"
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {list.length === 0 ? (
-                  <tr>
-                    <td colSpan={5}>
-                      <div className="empty-state">还没有密钥记录。先加一条测试 key，后面再接真实调用和轮换。</div>
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
+          <CredentialVaultTable
+            items={list.map((item) => ({
+              id: item.id,
+              provider: item.provider.name,
+              providerKey: item.provider.key,
+              label: item.label,
+              notes: item.notes,
+              fingerprint: item.fingerprint,
+              maskedValue: maskSecret(decryptSecret(item)),
+              status: item.status,
+              lastUsedAt: item.lastUsedAt?.toISOString() ?? null,
+            }))}
+          />
         </section>
       </div>
     </div>
