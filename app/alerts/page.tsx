@@ -21,15 +21,16 @@ export default async function AlertsPage() {
     <div className="page-stack">
       <section className="page-hero">
         <div className="hero-copy">
+          <p className="section-kicker">Alerts</p>
           <h1>提醒中心</h1>
-          <p>把额度阈值和订阅到期提醒统一在一个地方配置，逐步把“被动发现问题”变成“主动通知”。</p>
+          <p>把额度阈值和续费提醒放到一个位置维护。这里的目标很简单：在问题发生前先收到提醒，而不是事后发现。</p>
         </div>
         <div className="hero-meta">
           <div className="meta-chip">
             Rules <strong>{rules.length}</strong>
           </div>
           <div className="meta-chip">
-            Events <strong>{events.length}</strong>
+            Latest event <strong>{events[0] ? events[0].createdAt.toISOString().slice(5, 10) : "None"}</strong>
           </div>
         </div>
       </section>
@@ -39,7 +40,7 @@ export default async function AlertsPage() {
           <div className="section-head">
             <div>
               <h2>新增提醒规则</h2>
-              <p>目前优先支持额度阈值和订阅续费两种提醒场景。</p>
+              <p>先用少量规则覆盖最常见的问题，再慢慢扩展细分场景。</p>
             </div>
           </div>
           <AlertRuleForm providers={providers.map((p) => ({ id: p.id, name: p.name }))} />
@@ -47,11 +48,11 @@ export default async function AlertsPage() {
 
         <div className="stack">
           <section className="table-card">
-            <div className="card">
+            <div className="table-section">
               <div className="section-head">
                 <div>
                   <h2>规则列表</h2>
-                  <p>让你知道哪些平台会触发通知，以及通知会走哪些渠道。</p>
+                  <p>保持规则少而明确，让你知道哪些平台会触发、会走哪些渠道。</p>
                 </div>
               </div>
             </div>
@@ -93,11 +94,11 @@ export default async function AlertsPage() {
           </section>
 
           <section className="table-card">
-            <div className="card">
+            <div className="table-section">
               <div className="section-head">
                 <div>
                   <h2>最近告警事件</h2>
-                  <p>先用站内事件验证规则是否触发，后续再接真实邮件服务。</p>
+                  <p>先看站内事件是否正常生成，后面再接真实邮件提醒。</p>
                 </div>
               </div>
             </div>

@@ -27,15 +27,16 @@ export default async function UsagePage() {
     <div className="page-stack">
       <section className="page-hero">
         <div className="hero-copy">
+          <p className="section-kicker">Sync</p>
           <h1>同步记录</h1>
-          <p>这里负责把“连接配置”转化成“真实数据流”，先验证同步任务、再观察用量和费用落表。</p>
+          <p>这里是数据链路的入口。先看同步是否成功，再看用量和费用有没有正确落表，最后才考虑自动化和告警。</p>
         </div>
         <div className="hero-meta">
           <div className="meta-chip">
             Auto-sync providers <strong>{providers.length}</strong>
           </div>
           <div className="meta-chip">
-            Recent jobs <strong>{jobs.length}</strong>
+            Last job <strong>{jobs[0]?.status ?? "None"}</strong>
           </div>
         </div>
       </section>
@@ -45,7 +46,7 @@ export default async function UsagePage() {
           <div className="section-head">
             <div>
               <h2>手动同步</h2>
-              <p>先从手动触发开始验证，再交给定时任务每天巡检。</p>
+              <p>每次新接一个平台时，先手动跑通，再交给定时任务每天巡检。</p>
             </div>
           </div>
           <SyncTrigger providers={providers.map((p) => ({ id: p.id, name: p.name }))} />
@@ -53,11 +54,11 @@ export default async function UsagePage() {
 
         <div className="stack">
           <section className="table-card">
-            <div className="card">
+            <div className="table-section">
               <div className="section-head">
                 <div>
                   <h2>同步任务</h2>
-                  <p>确认触发源、状态与拉取到的记录数量是否正常。</p>
+                  <p>优先确认触发源、状态和拉取记录数是不是合理。</p>
                 </div>
               </div>
             </div>
@@ -103,11 +104,11 @@ export default async function UsagePage() {
           </section>
 
           <section className="table-card">
-            <div className="card">
+            <div className="table-section">
               <div className="section-head">
                 <div>
                   <h2>最近用量记录</h2>
-                  <p>观察请求量和 token 统计，确认 connector 的数据形态是否合理。</p>
+                  <p>通过最近记录，快速判断 connector 拉回来的数据形态是不是正常。</p>
                 </div>
               </div>
             </div>
@@ -143,11 +144,11 @@ export default async function UsagePage() {
           </section>
 
           <section className="table-card">
-            <div className="card">
+            <div className="table-section">
               <div className="section-head">
                 <div>
                   <h2>最近费用记录</h2>
-                  <p>后续做趋势图、预算预警和账单对账都会从这里开始。</p>
+                  <p>预算趋势、账单对账和费用监控，后面都会以这里为基础。</p>
                 </div>
               </div>
             </div>

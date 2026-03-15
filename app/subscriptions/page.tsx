@@ -24,15 +24,16 @@ export default async function SubscriptionsPage() {
     <div className="page-stack">
       <section className="page-hero">
         <div className="hero-copy">
+          <p className="section-kicker">Subscriptions</p>
           <h1>订阅管理</h1>
-          <p>记录套餐、账单周期和续费日期，把不同 AI 工具的固定成本集中到一个地方查看。</p>
+          <p>把固定成本整理成一张持续维护的台账。重点看套餐、金额、周期和续费时间，而不是零散截图和账单邮件。</p>
         </div>
         <div className="hero-meta">
           <div className="meta-chip">
             Active plans <strong>{list.filter((item) => item.isActive).length}</strong>
           </div>
           <div className="meta-chip">
-            Providers <strong>{providers.length}</strong>
+            Next renewal <strong>{list[0]?.renewalDate.toISOString().slice(0, 10) ?? "None"}</strong>
           </div>
         </div>
       </section>
@@ -42,18 +43,18 @@ export default async function SubscriptionsPage() {
           <div className="section-head">
             <div>
               <h2>新增订阅</h2>
-              <p>先收集周期、价格和续费日，后面才方便做成本趋势和到期提醒。</p>
+              <p>优先把周期、价格和续费日录准，后面做提醒和成本对比才会稳定。</p>
             </div>
           </div>
           <SubscriptionForm providers={providers.map((p) => ({ id: p.id, name: p.name }))} />
         </section>
 
         <section className="table-card">
-          <div className="card">
+          <div className="table-section">
             <div className="section-head">
               <div>
                 <h2>订阅列表</h2>
-                <p>优先关注快到期的平台与高频使用的付费工具。</p>
+                <p>把它当台账来看：哪些工具在持续付费，哪些项目快续费，哪些应该暂停。</p>
               </div>
             </div>
           </div>

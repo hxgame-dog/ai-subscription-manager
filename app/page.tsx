@@ -80,18 +80,18 @@ export default async function Home() {
       </section>
 
       <section className="grid cols-3 landing-metrics">
-          <article className="soft-card">
-            <strong>统一管理</strong>
-            <span>把散落的平台账号、订阅和 Key 整理成一张自己的 AI 资产台账。</span>
-          </article>
-          <article className="soft-card">
-            <strong>快速复制</strong>
-            <span>日常使用时，优先保证搜索、查看、复制这些动作足够顺手。</span>
-          </article>
-          <article className="soft-card">
-            <strong>逐步升级</strong>
-            <span>先把数据收拢起来，再逐步接自动统计、监控和提醒。</span>
-          </article>
+        <article className="soft-card">
+          <strong>统一管理</strong>
+          <span>把散落的平台账号、订阅和 Key 整理成一张自己的 AI 资产台账。</span>
+        </article>
+        <article className="soft-card">
+          <strong>快速复制</strong>
+          <span>日常使用时，优先保证搜索、查看、复制这些动作足够顺手。</span>
+        </article>
+        <article className="soft-card">
+          <strong>逐步升级</strong>
+          <span>先把数据收拢起来，再逐步接自动统计、监控和提醒。</span>
+        </article>
       </section>
     </div>
   );

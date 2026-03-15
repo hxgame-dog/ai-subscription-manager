@@ -15,8 +15,8 @@
   --danger: #b42318;
   --shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   --shadow-lg: 0 12px 30px rgba(15, 23, 42, 0.04);
-  --radius-lg: 18px;
-  --radius-md: 14px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
   --radius-sm: 10px;
 }
 
@@ -43,7 +43,7 @@ a {
 
 .shell {
   display: grid;
-  grid-template-columns: 272px 1fr;
+  grid-template-columns: 264px 1fr;
   min-height: 100vh;
 }
 
@@ -52,9 +52,9 @@ a {
   top: 0;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   min-height: 100vh;
-  padding: 24px 18px;
+  padding: 24px 16px;
   border-right: 1px solid var(--border);
   background: #fbfbfa;
 }
@@ -100,15 +100,15 @@ a {
 
 nav {
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .nav-item {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: 9px 10px;
+  border-radius: 10px;
   border: 1px solid transparent;
   color: var(--text);
   text-decoration: none;
@@ -151,20 +151,21 @@ nav {
 
 .content {
   padding: 32px 36px 48px;
+  max-width: 1280px;
 }
 
 .page-stack {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .page-hero {
   display: flex;
   justify-content: space-between;
   gap: 20px;
-  padding: 26px 28px;
+  padding: 24px 24px;
   border: 1px solid var(--border);
-  border-radius: 22px;
+  border-radius: 16px;
   background: var(--surface);
   box-shadow: var(--shadow);
 }
@@ -177,7 +178,7 @@ nav {
 .hero-copy h1,
 .hero-copy h2 {
   margin: 0;
-  font-size: 34px;
+  font-size: 36px;
   line-height: 1.04;
   letter-spacing: -0.06em;
 }
@@ -205,7 +206,7 @@ nav {
   gap: 8px;
   width: fit-content;
   min-height: 36px;
-  padding: 8px 12px;
+  padding: 7px 10px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface-muted);
@@ -226,6 +227,10 @@ nav {
   gap: 14px;
 }
 
+.grid.cols-1 {
+  grid-template-columns: 1fr;
+}
+
 .grid.cols-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -243,7 +248,7 @@ nav {
 .stat-card,
 .insight-card {
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: 16px;
   background: var(--surface);
   box-shadow: var(--shadow);
 }
@@ -278,6 +283,10 @@ nav {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 14px;
+}
+
+.table-section {
+  padding: 18px 18px 0;
 }
 
 .section-head p {
@@ -508,7 +517,7 @@ nav {
   gap: 8px;
   padding: 16px 18px;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 12px;
   background: var(--surface-muted);
 }
 
@@ -584,6 +593,17 @@ tbody tr:last-child td {
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.page-block {
+  display: grid;
+  gap: 8px;
+}
+
+.page-block p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.65;
 }
 
 .badge.success {

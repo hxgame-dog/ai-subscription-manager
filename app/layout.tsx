@@ -31,6 +31,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <h1>订阅总控台</h1>
               <p>Subscriptions, spend, keys, and sync notes in one quiet workspace.</p>
             </div>
+            <div className="page-block">
+              <p className="section-kicker">Navigation</p>
+              <p>优先把平台、订阅、密钥和同步放在固定位置，减少切换成本。</p>
+            </div>
             <nav>
               {nav.map((item) => (
                 <Link key={item.href} href={item.href} className="nav-item">
