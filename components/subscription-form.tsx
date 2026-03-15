@@ -13,7 +13,6 @@ type SubscriptionFormProps = {
     price: string;
     currency: string;
     renewalDate: string;
-    paymentMethod: string;
     notes: string;
   };
   submitLabel?: string;
@@ -45,7 +44,6 @@ export function SubscriptionForm({
           price: Number(formData.get("price")),
           currency: String(formData.get("currency") || "USD"),
           renewalDate: new Date(String(formData.get("renewalDate"))).toISOString(),
-          paymentMethod: formData.get("paymentMethod"),
           notes: formData.get("notes"),
         }
       : {
@@ -55,7 +53,6 @@ export function SubscriptionForm({
           price: Number(formData.get("price")),
           currency: String(formData.get("currency") || "USD"),
           renewalDate: new Date(String(formData.get("renewalDate"))).toISOString(),
-          paymentMethod: formData.get("paymentMethod"),
           notes: formData.get("notes"),
         };
 
@@ -112,7 +109,6 @@ export function SubscriptionForm({
         <input name="currency" defaultValue={initialValues?.currency ?? "USD"} maxLength={3} />
         <input defaultValue={initialValues?.renewalDate} name="renewalDate" type="date" required />
       </div>
-      <input defaultValue={initialValues?.paymentMethod} name="paymentMethod" placeholder="信用卡 / Apple Pay" />
       <textarea defaultValue={initialValues?.notes} name="notes" placeholder="备注" rows={3} />
       <button disabled={loading} type="submit">
         {loading ? "保存中..." : submitLabel ?? "创建订阅"}

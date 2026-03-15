@@ -15,7 +15,6 @@ type SubscriptionRow = {
   price: string;
   currency: string;
   renewalDate: string;
-  paymentMethod: string | null;
   notes: string | null;
   isActive: boolean;
 };
@@ -94,7 +93,6 @@ export function SubscriptionTable({
               price: editing.price,
               currency: editing.currency,
               renewalDate: editing.renewalDate,
-              paymentMethod: editing.paymentMethod ?? "",
               notes: editing.notes ?? "",
             }}
             onSaved={() => setEditingId(null)}

@@ -24,7 +24,19 @@ export async function getDashboardOverview(userId: string) {
   const weekStart = subDays(todayStart, 6);
   const monthStart = subDays(todayStart, 29);
 
-  const [todayUsage, weekUsage, monthUsage, monthSpend, activeSubscriptions, activeKeys, upcomingRenewals] =
+  const [
+    todayUsage,
+    weekUsage,
+    monthUsage,
+    monthSpend,
+    activeSubscriptions,
+    activeKeys,
+    subscriptions,
+    activeCredentialProviders,
+    upcomingRenewals,
+    latestSyncJob,
+    trustedUsageCount,
+  ] =
     await Promise.all([
       prisma.usageRecord.aggregate({
         where: { userId, recordedAt: { gte: todayStart, lte: now } },
@@ -45,6 +57,14 @@ export async function getDashboardOverview(userId: string) {
       prisma.subscription.count({ where: { userId, isActive: true } }),
       prisma.apiCredential.count({ where: { userId, status: "ACTIVE" } }),
       prisma.subscription.findMany({
+        where: { userId, isActive: true },
+        select: { billingCycle: true, price: true, provider: { select: { name: true } } },
+      }),
+      prisma.apiCredential.findMany({
+        where: { userId, status: "ACTIVE" },
+        select: { provider: { select: { name: true } } },
+      }),
+      prisma.subscription.findMany({
         where: {
           userId,
           isActive: true,
@@ -54,7 +74,33 @@ export async function getDashboardOverview(userId: string) {
         orderBy: { renewalDate: "asc" },
         take: 5,
       }),
+      prisma.syncJob.findFirst({
+        where: { userId },
+        include: { provider: true },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.usageRecord.count({
+        where: {
+          userId,
+          NOT: {
+            source: { contains: "official-mock" },
+          },
+        },
+      }),
     ]);
+
+  const activeProviderCount = new Set([
+    ...subscriptions.map((item) => item.provider.name),
+    ...activeCredentialProviders.map((item) => item.provider.name),
+  ]).size;
+  const monthlySubscriptionSpend = subscriptions.reduce((sum, item) => {
+    const price = Number(item.price);
+    if (item.billingCycle === "YEARLY") return sum + price / 12;
+    return sum + price;
+  }, 0);
+  const trackedApis = [...subscriptions.map((item) => item.provider.name), ...activeCredentialProviders.map((item) => item.provider.name)]
+    .filter((name, index, array) => array.indexOf(name) === index)
+    .sort((a, b) => a.localeCompare(b));
 
   return {
     today: {
@@ -78,6 +124,18 @@ export async function getDashboardOverview(userId: string) {
     },
     activeSubscriptions,
     activeKeys,
+    activeProviderCount,
+    monthlySubscriptionSpend,
+    trustedUsageCount,
+    trackedApis,
+    latestSyncJob: latestSyncJob
+      ? {
+          status: latestSyncJob.status,
+          provider: latestSyncJob.provider?.name ?? "ALL",
+          createdAt: latestSyncJob.createdAt,
+          recordsSynced: latestSyncJob.recordsSynced,
+        }
+      : null,
     upcomingRenewals: upcomingRenewals.map((item) => ({
       id: item.id,
       provider: item.provider.name,

@@ -39,8 +39,8 @@ export default async function SubscriptionsPage() {
         </div>
       </section>
 
-      <div className="split-layout">
-        <section className="card">
+      <div className="stack-layout">
+        <section className="card form-panel">
           <div className="section-head">
             <div>
               <h2>新增订阅</h2>
@@ -70,7 +70,6 @@ export default async function SubscriptionsPage() {
               price: item.price.toString(),
               currency: item.currency,
               renewalDate: item.renewalDate.toISOString().slice(0, 10),
-              paymentMethod: item.paymentMethod,
               notes: item.notes,
               isActive: item.isActive,
             }))}

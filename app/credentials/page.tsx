@@ -40,8 +40,8 @@ export default async function CredentialsPage() {
         </div>
       </section>
 
-      <div className="split-layout">
-        <section className="card">
+      <div className="stack-layout">
+        <section className="card form-panel">
           <div className="section-head">
               <div>
                 <h2>新增 API Key</h2>
@@ -52,7 +52,7 @@ export default async function CredentialsPage() {
         </section>
 
         <section className="table-card">
-          <div className="card">
+          <div className="table-section">
             <div className="section-head">
               <div>
                 <h2>Key 列表</h2>
