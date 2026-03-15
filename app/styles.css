@@ -1,5 +1,5 @@
 :root {
-  --background: #f6f4ef;
+  --background: #ffffff;
   --surface: #fffdf8;
   --surface-muted: #fbfaf6;
   --surface-subtle: #f3f0ea;
@@ -283,6 +283,16 @@ nav {
 .page-hero-dashboard {
   background: linear-gradient(180deg, #eef4ff 0%, #fffdf8 100%);
   border-color: #dce7f8;
+}
+
+.page-hero-subscriptions {
+  background: linear-gradient(180deg, var(--module-subscriptions-soft) 0%, #fffdf8 100%);
+  border-color: #efe0b4;
+}
+
+.page-hero-vault {
+  background: linear-gradient(180deg, var(--module-vault-soft) 0%, #fffdf8 100%);
+  border-color: #d7e7f7;
 }
 
 .hero-copy {
@@ -881,6 +891,16 @@ small {
 .workspace-section-status .section-kicker,
 .workspace-section-status .stat-kicker {
   color: var(--module-sync);
+}
+
+.panel-subscriptions {
+  background: linear-gradient(180deg, #fffdf7 0%, #fffaf0 100%);
+  border-color: #efe0b4;
+}
+
+.panel-vault {
+  background: linear-gradient(180deg, #fffdfa 0%, #f7fbff 100%);
+  border-color: #d7e7f7;
 }
 
 .info-list {

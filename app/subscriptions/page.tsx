@@ -23,7 +23,7 @@ export default async function SubscriptionsPage() {
 
   return (
     <div className="page-stack">
-      <section className="page-hero">
+      <section className="page-hero page-hero-subscriptions">
         <div className="hero-copy">
           <p className="section-kicker">Subscriptions</p>
           <h1>订阅管理</h1>
@@ -40,7 +40,7 @@ export default async function SubscriptionsPage() {
       </section>
 
       <div className="stack-layout">
-        <section className="card form-panel">
+        <section className="card form-panel panel-subscriptions">
           <div className="section-head">
             <div>
               <h2>新增订阅</h2>
@@ -50,7 +50,7 @@ export default async function SubscriptionsPage() {
           <SubscriptionForm providers={providers.map((p) => ({ id: p.id, name: p.name }))} />
         </section>
 
-        <section className="table-card">
+        <section className="table-card panel-subscriptions">
           <div className="table-section">
             <div className="section-head">
               <div>

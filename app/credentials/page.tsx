@@ -24,7 +24,7 @@ export default async function CredentialsPage() {
 
   return (
     <div className="page-stack">
-      <section className="page-hero">
+      <section className="page-hero page-hero-vault">
         <div className="hero-copy">
           <p className="section-kicker">Vault</p>
           <h1>密钥保险库</h1>
@@ -41,7 +41,7 @@ export default async function CredentialsPage() {
       </section>
 
       <div className="stack-layout">
-        <section className="card form-panel">
+        <section className="card form-panel panel-vault">
           <div className="section-head">
               <div>
                 <h2>新增 API Key</h2>
@@ -51,7 +51,7 @@ export default async function CredentialsPage() {
           <CredentialForm providers={providers.map((p) => ({ id: p.id, name: p.name }))} />
         </section>
 
-        <section className="table-card">
+        <section className="table-card panel-vault">
           <div className="table-section">
             <div className="section-head">
               <div>
