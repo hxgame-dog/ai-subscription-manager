@@ -2,6 +2,7 @@ import { SyncTrigger } from "@/components/sync-trigger";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ensureProviders } from "@/lib/providers";
+import { listProviderSyncStatuses } from "@/lib/provider-connectors";
 
 export default async function UsagePage() {
   const session = await auth();
@@ -22,6 +23,9 @@ export default async function UsagePage() {
     prisma.usageRecord.findMany({ where: { userId: session.user.id }, orderBy: { recordedAt: "desc" }, take: 20 }),
     prisma.spendRecord.findMany({ where: { userId: session.user.id }, orderBy: { recordedAt: "desc" }, take: 20 }),
   ]);
+
+  const providerStatuses = listProviderSyncStatuses(providers.map((p) => p.key));
+  const statusByKey = new Map(providerStatuses.map((item) => [item.providerKey, item]));
 
   return (
     <div className="page-stack">
@@ -50,6 +54,51 @@ export default async function UsagePage() {
             </div>
           </div>
           <SyncTrigger providers={providers.map((p) => ({ id: p.id, name: p.name }))} />
+
+          <div style={{ marginTop: 20 }}>
+            <div className="section-head">
+              <div>
+                <h2>Connector readiness</h2>
+                <p>只要不是 ready 状态，就不会再写 mock 数据冒充同步成功。</p>
+              </div>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>平台</th>
+                    <th>能力</th>
+                    <th>状态</th>
+                    <th>说明</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {providers.map((provider) => {
+                    const status = statusByKey.get(provider.key);
+                    const ready = Boolean(status?.available);
+                    const planned = status?.mode === "planned";
+                    const missing = status?.missing?.length ? `缺少: ${status.missing.join("、")}` : "";
+
+                    return (
+                      <tr key={provider.id}>
+                        <td>{provider.name}</td>
+                        <td>{status?.label ?? "Planned connector"}</td>
+                        <td>
+                          <span className={`badge ${ready ? "success" : planned ? "info" : "danger"}`}>
+                            {ready ? "READY" : planned ? "PLANNED" : "NEEDS_CONFIG"}
+                          </span>
+                        </td>
+                        <td>
+                          <div>{status?.description ?? "尚未定义 connector 能力。"}</div>
+                          {missing ? <div style={{ marginTop: 6 }}>{missing}</div> : null}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </section>
 
         <div className="stack">
@@ -88,7 +137,10 @@ export default async function UsagePage() {
                         </span>
                       </td>
                       <td>{j.recordsSynced}</td>
-                      <td>{j.trigger}</td>
+                      <td>
+                        <div>{j.trigger}</div>
+                        {j.errorMessage ? <small>{j.errorMessage}</small> : null}
+                      </td>
                     </tr>
                   ))}
                   {jobs.length === 0 ? (

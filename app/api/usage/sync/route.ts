@@ -29,19 +29,21 @@ export async function POST(request: Request) {
       resource: "SyncJob",
       resourceId: result.jobId,
       outcome: "SUCCESS",
-      metadata: { trigger: parsed.data.trigger },
+      metadata: { trigger: parsed.data.trigger, message: result.message },
     });
 
     return NextResponse.json(result);
   } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown";
+
     await writeAuditLog({
       userId: session.user.id,
       action: "SYNC_TRIGGER",
       resource: "SyncJob",
       outcome: "ERROR",
-      metadata: { message: error instanceof Error ? error.message : "unknown" },
+      metadata: { message },
     });
 
-    return NextResponse.json({ error: "Sync failed" }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

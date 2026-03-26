@@ -20,7 +20,13 @@ export function SyncTrigger({ providers }: { providers: Array<{ id: string; name
 
     const data = await res.json();
     setLoading(false);
-    setMessage(res.ok ? `同步完成，记录数: ${data.recordsSynced}` : "同步失败");
+    setMessage(
+      res.ok
+        ? data.message
+          ? `同步完成，记录数: ${data.recordsSynced} · ${data.message}`
+          : `同步完成，记录数: ${data.recordsSynced}`
+        : data.error || "同步失败",
+    );
   }
 
   return (

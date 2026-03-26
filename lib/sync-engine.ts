@@ -4,81 +4,6 @@ import { prisma } from "@/lib/db";
 import { sendNotification } from "@/lib/notifications";
 import { syncProviderUsage } from "@/lib/provider-connectors";
 
-function randomBetween(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1) + min);
-}
-
-const providerModelMap: Record<string, string[]> = {
-  openai: ["gpt-4o-mini", "gpt-4.1-mini"],
-  gemini: ["gemini-2.0-flash", "gemini-1.5-pro"],
-  anthropic: ["claude-3-5-sonnet", "claude-3-haiku"],
-  groq: ["llama-3.3-70b", "mixtral-8x7b"],
-  perplexity: ["sonar", "sonar-pro"],
-  cohere: ["command-r", "command-r-plus"],
-  mistral: ["mistral-large", "codestral"],
-  replicate: ["flux-dev", "llama-3.1"],
-};
-
-async function mockProviderPull(userId: string, providerId: string, providerKey: string) {
-  const now = new Date();
-  const activeCredential = await prisma.apiCredential.findFirst({
-    where: { userId, providerId, status: "ACTIVE" },
-    orderBy: { updatedAt: "desc" },
-  });
-
-  const models = providerModelMap[providerKey] ?? ["default-model"];
-  let written = 0;
-
-  for (const providerModel of models.slice(0, 2)) {
-    const requestCount = randomBetween(20, 300);
-    const inputTokens = randomBetween(3000, 50000);
-    const outputTokens = randomBetween(2000, 35000);
-    const amount = Number((((inputTokens + outputTokens) / 1_000_000) * randomBetween(2, 8)).toFixed(4));
-    const hasError = randomBetween(1, 10) > 8;
-
-    await prisma.usageRecord.create({
-      data: {
-        userId,
-        providerId,
-        credentialId: activeCredential?.id,
-        model: providerModel,
-        providerModel,
-        requestCount,
-        inputTokens,
-        outputTokens,
-        statusCode: hasError ? 429 : 200,
-        errorType: hasError ? "rate_limit" : null,
-        recordedAt: now,
-        source: `connector:${providerKey}:official-mock`,
-      },
-    });
-
-    await prisma.spendRecord.create({
-      data: {
-        userId,
-        providerId,
-        credentialId: activeCredential?.id,
-        providerModel,
-        amount,
-        currency: "USD",
-        recordedAt: now,
-        source: `connector:${providerKey}:official-mock`,
-      },
-    });
-
-    if (activeCredential) {
-      await prisma.apiCredential.update({
-        where: { id: activeCredential.id },
-        data: { lastUsedAt: now },
-      });
-    }
-
-    written += 2;
-  }
-
-  return written;
-}
-
 export async function runSyncJob(params: {
   userId: string;
   providerId?: string;
@@ -100,6 +25,8 @@ export async function runSyncJob(params: {
       : await prisma.provider.findMany({ where: { supportsAutoSync: true } });
 
     let records = 0;
+    const messages: string[] = [];
+
     for (const p of providers) {
       const synced = await syncProviderUsage({
         userId: params.userId,
@@ -107,21 +34,34 @@ export async function runSyncJob(params: {
         providerKey: p.key,
       });
 
-      if (synced.handled) {
-        records += synced.records;
+      if (!synced.handled) {
+        messages.push(`${p.name}: no real connector implemented yet`);
         continue;
       }
 
-      records += await mockProviderPull(params.userId, p.id, p.key);
+      records += synced.records;
+      if (synced.message) {
+        messages.push(`${p.name}: ${synced.message}`);
+      }
     }
 
     await prisma.syncJob.update({
       where: { id: job.id },
-      data: { status: "SUCCESS", finishedAt: new Date(), recordsSynced: records },
+      data: {
+        status: "SUCCESS",
+        finishedAt: new Date(),
+        recordsSynced: records,
+        errorMessage: messages.length ? messages.join(" | ") : null,
+      },
     });
 
     await evaluateAlerts(params.userId);
-    return { jobId: job.id, recordsSynced: records, status: "SUCCESS" as const };
+    return {
+      jobId: job.id,
+      recordsSynced: records,
+      status: "SUCCESS" as const,
+      message: messages.length ? messages.join(" | ") : undefined,
+    };
   } catch (error) {
     await prisma.syncJob.update({
       where: { id: job.id },

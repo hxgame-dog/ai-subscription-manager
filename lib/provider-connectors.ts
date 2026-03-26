@@ -3,18 +3,112 @@ import { subDays } from "date-fns";
 import { prisma } from "@/lib/db";
 import { googleApiFetch, hasGoogleServiceAccount, runBigQueryQuery } from "@/lib/google-cloud";
 
-type SyncContext = {
+export type SyncContext = {
   userId: string;
   providerId: string;
   providerKey: string;
+};
+
+export type ProviderSyncCapability = {
+  providerKey: string;
+  mode: "official" | "planned";
+  label: string;
+  description: string;
+  docs?: string;
+};
+
+export type ProviderSyncStatus = {
+  providerKey: string;
+  mode: ProviderSyncCapability["mode"];
+  label: string;
+  description: string;
+  configured: boolean;
+  available: boolean;
+  missing: string[];
+  docs?: string;
+};
+
+export type SyncResult = {
+  handled: boolean;
+  records: number;
+  mode?: "official";
+  status?: "synced" | "misconfigured" | "unsupported";
+  missing?: string[];
+  message?: string;
+};
+
+const PROVIDER_SYNC_CAPABILITIES: Record<string, ProviderSyncCapability> = {
+  cursor: {
+    providerKey: "cursor",
+    mode: "official",
+    label: "Cursor Admin API",
+    description: "Pulls real Cursor team usage events from the official admin API.",
+    docs: "https://cursor.com/docs/admin/api",
+  },
+  gemini: {
+    providerKey: "gemini",
+    mode: "official",
+    label: "Gemini via GCP Monitoring / BigQuery",
+    description: "Pulls Gemini request counts from Cloud Monitoring and optional spend/token estimates from BigQuery billing export.",
+    docs: "https://cloud.google.com/monitoring/api/metrics_gcp#gcp-serviceruntime",
+  },
 };
 
 function startOfUtcDay(date: Date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
-function formatDate(date: Date) {
-  return date.toISOString().slice(0, 10);
+function getCursorMissingConfig() {
+  return process.env.CURSOR_ADMIN_API_KEY ? [] : ["CURSOR_ADMIN_API_KEY"];
+}
+
+function getGeminiMissingConfig() {
+  const missing: string[] = [];
+  if (!(process.env.GEMINI_GCP_PROJECT_ID || process.env.GCP_PROJECT_ID)) {
+    missing.push("GEMINI_GCP_PROJECT_ID | GCP_PROJECT_ID");
+  }
+  if (!hasGoogleServiceAccount()) {
+    missing.push("GOOGLE_SERVICE_ACCOUNT_JSON | GCP_SERVICE_ACCOUNT_JSON");
+  }
+  return missing;
+}
+
+export function listProviderSyncStatuses(providerKeys: string[]): ProviderSyncStatus[] {
+  return providerKeys.map((providerKey) => getProviderSyncStatus(providerKey));
+}
+
+export function getProviderSyncStatus(providerKey: string): ProviderSyncStatus {
+  const capability = PROVIDER_SYNC_CAPABILITIES[providerKey];
+
+  if (!capability) {
+    return {
+      providerKey,
+      mode: "planned",
+      label: "Planned connector",
+      description: "This provider is listed in the catalog, but a real sync connector has not been implemented yet.",
+      configured: false,
+      available: false,
+      missing: ["Connector implementation"],
+    };
+  }
+
+  const missing =
+    providerKey === "cursor"
+      ? getCursorMissingConfig()
+      : providerKey === "gemini"
+        ? getGeminiMissingConfig()
+        : [];
+
+  return {
+    providerKey,
+    mode: capability.mode,
+    label: capability.label,
+    description: capability.description,
+    configured: missing.length === 0,
+    available: capability.mode === "official" && missing.length === 0,
+    missing,
+    docs: capability.docs,
+  };
 }
 
 async function clearSourceWindow(userId: string, providerId: string, sourcePrefix: string, start: Date) {
@@ -26,105 +120,160 @@ async function clearSourceWindow(userId: string, providerId: string, sourcePrefi
   });
 }
 
-async function syncCursorUsage(context: SyncContext) {
-  const apiKey = process.env.CURSOR_ADMIN_API_KEY;
-  if (!apiKey) {
-    return { handled: false, records: 0 };
+async function syncCursorUsage(context: SyncContext): Promise<SyncResult> {
+  const missing = getCursorMissingConfig();
+  if (missing.length > 0) {
+    return {
+      handled: true,
+      records: 0,
+      mode: "official",
+      status: "misconfigured",
+      missing,
+      message: `Cursor connector is not configured: ${missing.join(", ")}`,
+    };
   }
 
+  const apiKey = process.env.CURSOR_ADMIN_API_KEY!;
   const user = await prisma.user.findUnique({
     where: { id: context.userId },
     select: { email: true },
   });
+  const activeCredential = await prisma.apiCredential.findFirst({
+    where: { userId: context.userId, providerId: context.providerId, status: "ACTIVE" },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true },
+  });
 
   const startDate = subDays(new Date(), 7).getTime();
   const endDate = Date.now();
-  const payload = {
-    startDate,
-    endDate,
-    pageSize: 100,
-    ...(user?.email ? { email: user.email, searchTerm: user.email } : {}),
-  };
-
-  const response = await fetch("https://api.cursor.com/teams/filtered-usage-events", {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString("base64")}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Cursor usage sync failed with ${response.status}`);
-  }
-
-  const data = (await response.json()) as {
-    usageEvents?: Array<{
-      timestamp?: string;
-      model?: string;
-      isTokenBasedCall?: boolean;
-      numRequests?: number;
-      tokenUsage?: {
-        inputTokens?: number;
-        outputTokens?: number;
-        cacheWriteTokens?: number;
-        cacheReadTokens?: number;
-        totalCents?: number;
-      };
-      requestsCosts?: number;
-    }>;
-  };
-
   const sourcePrefix = "connector:cursor:admin-api";
   await clearSourceWindow(context.userId, context.providerId, sourcePrefix, subDays(new Date(), 7));
 
   let records = 0;
-  for (const event of data.usageEvents || []) {
-    const recordedAt = event.timestamp ? new Date(event.timestamp) : new Date();
-    const inputTokens = event.tokenUsage?.inputTokens ?? 0;
-    const outputTokens = event.tokenUsage?.outputTokens ?? 0;
-    const requestCount = event.numRequests ?? 1;
-    const cents = event.tokenUsage?.totalCents ?? event.requestsCosts ?? 0;
+  let cursor: string | null = null;
+  let page = 0;
 
-    await prisma.usageRecord.create({
-      data: {
-        userId: context.userId,
-        providerId: context.providerId,
-        providerModel: event.model ?? "cursor-unknown",
-        model: event.model ?? "cursor-unknown",
-        requestCount,
-        inputTokens,
-        outputTokens,
-        recordedAt,
-        source: `${sourcePrefix}:usage`,
+  while (page < 20) {
+    const payload: Record<string, unknown> = {
+      startDate,
+      endDate,
+      pageSize: 100,
+      ...(cursor ? { cursor } : {}),
+      ...(user?.email ? { email: user.email, searchTerm: user.email } : {}),
+    };
+
+    const response = await fetch("https://api.cursor.com/teams/filtered-usage-events", {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString("base64")}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify(payload),
+      cache: "no-store",
     });
 
-    await prisma.spendRecord.create({
-      data: {
-        userId: context.userId,
-        providerId: context.providerId,
-        providerModel: event.model ?? "cursor-unknown",
-        amount: Number((cents / 100).toFixed(4)),
-        currency: "USD",
-        recordedAt,
-        source: `${sourcePrefix}:spend`,
-      },
-    });
+    if (!response.ok) {
+      throw new Error(`Cursor usage sync failed with ${response.status}`);
+    }
 
-    records += 2;
+    const data = (await response.json()) as {
+      usageEvents?: Array<{
+        timestamp?: string;
+        model?: string;
+        numRequests?: number;
+        tokenUsage?: {
+          inputTokens?: number;
+          outputTokens?: number;
+          totalCents?: number;
+        };
+        requestsCosts?: number;
+      }>;
+      nextCursor?: string | null;
+      cursor?: string | null;
+      pagination?: { nextCursor?: string | null; hasMore?: boolean };
+      hasMore?: boolean;
+    };
+
+    for (const event of data.usageEvents || []) {
+      const recordedAt = event.timestamp ? new Date(event.timestamp) : new Date();
+      const inputTokens = event.tokenUsage?.inputTokens ?? 0;
+      const outputTokens = event.tokenUsage?.outputTokens ?? 0;
+      const requestCount = event.numRequests ?? 1;
+      const cents = event.tokenUsage?.totalCents ?? event.requestsCosts ?? 0;
+      const model = event.model ?? "cursor-unknown";
+
+      await prisma.usageRecord.create({
+        data: {
+          userId: context.userId,
+          providerId: context.providerId,
+          credentialId: activeCredential?.id,
+          providerModel: model,
+          model,
+          requestCount,
+          inputTokens,
+          outputTokens,
+          recordedAt,
+          source: `${sourcePrefix}:usage`,
+        },
+      });
+
+      await prisma.spendRecord.create({
+        data: {
+          userId: context.userId,
+          providerId: context.providerId,
+          credentialId: activeCredential?.id,
+          providerModel: model,
+          amount: Number((cents / 100).toFixed(4)),
+          currency: "USD",
+          recordedAt,
+          source: `${sourcePrefix}:spend`,
+        },
+      });
+
+      records += 2;
+    }
+
+    cursor = data.nextCursor ?? data.pagination?.nextCursor ?? data.cursor ?? null;
+    const hasMore = Boolean(data.pagination?.hasMore ?? data.hasMore ?? cursor);
+    page += 1;
+    if (!hasMore || !cursor) break;
   }
 
-  return { handled: true, records };
+  if (activeCredential) {
+    await prisma.apiCredential.update({
+      where: { id: activeCredential.id },
+      data: { lastUsedAt: new Date() },
+    });
+  }
+
+  return {
+    handled: true,
+    records,
+    mode: "official",
+    status: "synced",
+    message: records > 0 ? `Synced ${records} Cursor records from the admin API.` : "Cursor sync completed with no matching events.",
+  };
 }
 
-async function syncGeminiUsage(context: SyncContext) {
-  const projectId = process.env.GEMINI_GCP_PROJECT_ID || process.env.GCP_PROJECT_ID;
-  if (!projectId || !hasGoogleServiceAccount()) {
-    return { handled: false, records: 0 };
+async function syncGeminiUsage(context: SyncContext): Promise<SyncResult> {
+  const missing = getGeminiMissingConfig();
+  if (missing.length > 0) {
+    return {
+      handled: true,
+      records: 0,
+      mode: "official",
+      status: "misconfigured",
+      missing,
+      message: `Gemini connector is not configured: ${missing.join(", ")}`,
+    };
   }
 
+  const projectId = process.env.GEMINI_GCP_PROJECT_ID || process.env.GCP_PROJECT_ID!;
+  const activeCredential = await prisma.apiCredential.findFirst({
+    where: { userId: context.userId, providerId: context.providerId, status: "ACTIVE" },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true },
+  });
   const start = startOfUtcDay(subDays(new Date(), 7));
   const end = new Date();
   const sourcePrefix = "connector:gemini:gcp";
@@ -146,34 +295,46 @@ async function syncGeminiUsage(context: SyncContext) {
     `&interval.endTime=${encodeURIComponent(end.toISOString())}`;
 
   const monitoringResponse = await googleApiFetch(monitoringUrl);
-  if (monitoringResponse?.ok) {
-    const monitoringData = (await monitoringResponse.json()) as {
-      timeSeries?: Array<{
-        metric?: { labels?: Record<string, string> };
-        points?: Array<{ interval?: { endTime?: string }; value?: { int64Value?: string } }>;
-      }>;
-    };
+  if (!monitoringResponse) {
+    throw new Error("Gemini sync could not authenticate to Google Cloud.");
+  }
+  if (!monitoringResponse.ok) {
+    throw new Error(`Gemini monitoring sync failed with ${monitoringResponse.status}`);
+  }
 
-    for (const series of monitoringData.timeSeries || []) {
-      for (const point of series.points || []) {
-        const requestCount = Number(point.value?.int64Value ?? 0);
-        if (!requestCount) continue;
-        const recordedAt = point.interval?.endTime ? new Date(point.interval.endTime) : end;
-        await prisma.usageRecord.create({
-          data: {
-            userId: context.userId,
-            providerId: context.providerId,
-            providerModel: series.metric?.labels?.method ?? "gemini-api",
-            model: series.metric?.labels?.method ?? "gemini-api",
-            requestCount,
-            inputTokens: 0,
-            outputTokens: 0,
-            recordedAt,
-            source: `${sourcePrefix}:monitoring`,
-          },
-        });
-        records += 1;
-      }
+  const monitoringData = (await monitoringResponse.json()) as {
+    timeSeries?: Array<{
+      metric?: { labels?: Record<string, string> };
+      points?: Array<{ interval?: { endTime?: string }; value?: { int64Value?: string } }>;
+    }>;
+  };
+
+  for (const series of monitoringData.timeSeries || []) {
+    for (const point of series.points || []) {
+      const requestCount = Number(point.value?.int64Value ?? 0);
+      if (!requestCount) continue;
+      const recordedAt = point.interval?.endTime ? new Date(point.interval.endTime) : end;
+      const model =
+        series.metric?.labels?.method ||
+        series.metric?.labels?.model ||
+        series.metric?.labels?.response_code ||
+        "gemini-api";
+
+      await prisma.usageRecord.create({
+        data: {
+          userId: context.userId,
+          providerId: context.providerId,
+          credentialId: activeCredential?.id,
+          providerModel: model,
+          model,
+          requestCount,
+          inputTokens: 0,
+          outputTokens: 0,
+          recordedAt,
+          source: `${sourcePrefix}:monitoring`,
+        },
+      });
+      records += 1;
     }
   }
 
@@ -207,16 +368,19 @@ async function syncGeminiUsage(context: SyncContext) {
     for (const row of billingData?.rows || []) {
       const [day, amount, inputUnits, outputUnits] = row.f?.map((field) => field.v) ?? [];
       if (!day) continue;
+      const recordedAt = new Date(`${day}T00:00:00.000Z`);
+
       await prisma.usageRecord.create({
         data: {
           userId: context.userId,
           providerId: context.providerId,
+          credentialId: activeCredential?.id,
           providerModel: "gemini-billing-export",
           model: "gemini-billing-export",
           requestCount: 0,
           inputTokens: Math.round(Number(inputUnits ?? 0)),
           outputTokens: Math.round(Number(outputUnits ?? 0)),
-          recordedAt: new Date(`${day}T00:00:00.000Z`),
+          recordedAt,
           source: `${sourcePrefix}:billing`,
         },
       });
@@ -224,10 +388,11 @@ async function syncGeminiUsage(context: SyncContext) {
         data: {
           userId: context.userId,
           providerId: context.providerId,
+          credentialId: activeCredential?.id,
           providerModel: "gemini-billing-export",
           amount: Number(amount ?? 0),
           currency: "USD",
-          recordedAt: new Date(`${day}T00:00:00.000Z`),
+          recordedAt,
           source: `${sourcePrefix}:billing`,
         },
       });
@@ -235,10 +400,26 @@ async function syncGeminiUsage(context: SyncContext) {
     }
   }
 
-  return { handled: true, records };
+  if (activeCredential) {
+    await prisma.apiCredential.update({
+      where: { id: activeCredential.id },
+      data: { lastUsedAt: new Date() },
+    });
+  }
+
+  return {
+    handled: true,
+    records,
+    mode: "official",
+    status: "synced",
+    message:
+      records > 0
+        ? "Synced Gemini usage from Google Cloud monitoring/billing sources."
+        : "Gemini sync completed but no monitoring or billing rows matched the current window.",
+  };
 }
 
-export async function syncProviderUsage(context: SyncContext) {
+export async function syncProviderUsage(context: SyncContext): Promise<SyncResult> {
   if (context.providerKey === "cursor") {
     return syncCursorUsage(context);
   }
@@ -247,5 +428,10 @@ export async function syncProviderUsage(context: SyncContext) {
     return syncGeminiUsage(context);
   }
 
-  return { handled: false, records: 0 };
+  return {
+    handled: false,
+    records: 0,
+    status: "unsupported",
+    message: `No real sync connector has been implemented for provider: ${context.providerKey}`,
+  };
 }
