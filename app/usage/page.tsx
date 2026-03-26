@@ -4,34 +4,54 @@ import { prisma } from "@/lib/db";
 import { ensureProviders } from "@/lib/providers";
 import { listProviderSyncStatuses } from "@/lib/provider-connectors";
 
+function readAuditString(metadata: unknown, key: string) {
+  if (!metadata || typeof metadata !== "object") return null;
+  const value = (metadata as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : null;
+}
+
+function readAuditNumber(metadata: unknown, key: string) {
+  if (!metadata || typeof metadata !== "object") return null;
+  const value = (metadata as Record<string, unknown>)[key];
+  return typeof value === "number" ? value : null;
+}
+
+function formatWindow(windowDays: number | null) {
+  if (windowDays === 1) return "最近 24h";
+  if (windowDays === 7) return "最近 7d";
+  if (windowDays === 30) return "最近 30d";
+  return "未记录";
+}
+
 export default async function UsagePage() {
   const session = await auth();
   if (!session?.user?.id) return <div className="empty-state">请先登录后再查看同步记录。</div>;
 
   await ensureProviders();
 
-  const [providers, jobs, usage, spend, lastDiagnostic] = await Promise.all([
+  const [providers, jobs, usage, spend, diagnosticLogs, syncLogs] = await Promise.all([
     prisma.provider.findMany({ where: { supportsAutoSync: true }, orderBy: { name: "asc" } }),
     prisma.syncJob.findMany({ where: { userId: session.user.id }, include: { provider: true }, orderBy: { createdAt: "desc" }, take: 20 }),
     prisma.usageRecord.findMany({ where: { userId: session.user.id }, orderBy: { recordedAt: "desc" }, take: 20 }),
     prisma.spendRecord.findMany({ where: { userId: session.user.id }, orderBy: { recordedAt: "desc" }, take: 20 }),
-    prisma.auditLog.findFirst({ where: { userId: session.user.id, action: "SYNC_DIAGNOSE" }, orderBy: { createdAt: "desc" } }),
+    prisma.auditLog.findMany({ where: { userId: session.user.id, action: "SYNC_DIAGNOSE" }, orderBy: { createdAt: "desc" }, take: 10 }),
+    prisma.auditLog.findMany({ where: { userId: session.user.id, action: "SYNC_TRIGGER" }, orderBy: { createdAt: "desc" }, take: 40 }),
   ]);
 
   const providerStatuses = listProviderSyncStatuses(providers.map((p) => p.key));
   const statusByKey = new Map(providerStatuses.map((item) => [item.providerKey, item]));
+  const providerNameByKey = new Map(providers.map((p) => [p.key, p.name]));
   const readyProviders = providerStatuses.filter((item) => item.available);
   const blockedProviders = providerStatuses.filter((item) => item.mode === "official" && !item.available);
+  const syncLogByJobId = new Map(syncLogs.filter((log) => log.resourceId).map((log) => [log.resourceId as string, log]));
 
+  const lastDiagnostic = diagnosticLogs[0] ?? null;
   const initialDiagnostic = lastDiagnostic
     ? {
         providerKey: lastDiagnostic.resourceId ?? "unknown",
         outcome: lastDiagnostic.outcome as "SUCCESS" | "ERROR",
         createdAt: lastDiagnostic.createdAt.toISOString().slice(0, 19).replace("T", " "),
-        summary:
-          typeof lastDiagnostic.metadata === "object" && lastDiagnostic.metadata && "summary" in (lastDiagnostic.metadata as Record<string, unknown>)
-            ? String((lastDiagnostic.metadata as Record<string, unknown>).summary || "")
-            : "最近一次诊断结果已恢复。",
+        summary: readAuditString(lastDiagnostic.metadata, "summary") ?? "最近一次诊断结果已恢复。",
       }
     : null;
 
@@ -63,6 +83,30 @@ export default async function UsagePage() {
             <div className="section-head"><div><h2>当前建议</h2><p>先把第一条真实同步链路跑通，再逐个平台扩展。</p></div></div>
             <div className="soft-card" style={{ marginTop: 12 }}>
               {readyProviders.length > 0 ? <><strong>优先验证：{readyProviders[0]?.label}</strong><span>{readyProviders[0]?.nextStep}</span></> : blockedProviders.length > 0 ? <><strong>优先补配置：{blockedProviders[0]?.label}</strong><span>{blockedProviders[0]?.nextStep}</span></> : <><strong>下一步：实现更多真实 connector</strong><span>目前自动同步平台里还没有 ready 的真实 connector，建议先完成 Cursor 或 Gemini。</span></>}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 20 }}>
+            <div className="section-head"><div><h2>最近诊断历史</h2><p>刷新后也能回看最近几次 connector 诊断结果。</p></div></div>
+            <div className="table-wrap">
+              <table>
+                <thead><tr><th>时间</th><th>平台</th><th>结果</th><th>摘要</th></tr></thead>
+                <tbody>
+                  {diagnosticLogs.map((log) => {
+                    const providerKey = log.resourceId ?? "unknown";
+                    const summary = readAuditString(log.metadata, "summary") ?? "无摘要";
+                    return (
+                      <tr key={log.id}>
+                        <td>{log.createdAt.toISOString().slice(0, 19).replace("T", " ")}</td>
+                        <td>{providerNameByKey.get(providerKey) ?? providerKey}</td>
+                        <td><span className={`badge ${log.outcome === "SUCCESS" ? "success" : "danger"}`}>{log.outcome}</span></td>
+                        <td>{summary}</td>
+                      </tr>
+                    );
+                  })}
+                  {diagnosticLogs.length === 0 ? <tr><td colSpan={4}><div className="empty-state">还没有诊断历史，先点一次“先做连接诊断”。</div></td></tr> : null}
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -99,8 +143,31 @@ export default async function UsagePage() {
 
         <div className="stack">
           <section className="table-card">
-            <div className="table-section"><div className="section-head"><div><h2>同步任务</h2><p>优先确认触发源、状态和拉取记录数是不是合理。</p></div></div></div>
-            <div className="table-wrap"><table><thead><tr><th>时间</th><th>平台</th><th>状态</th><th>记录数</th><th>触发源</th></tr></thead><tbody>{jobs.map((j) => <tr key={j.id}><td>{j.createdAt.toISOString().slice(0, 19).replace("T", " ")}</td><td>{j.provider?.name || "ALL"}</td><td><span className={`badge ${j.status === "SUCCESS" ? "success" : j.status === "FAILED" ? "danger" : "info"}`}>{j.status}</span></td><td>{j.recordsSynced}</td><td><div>{j.trigger}</div>{j.errorMessage ? <small>{j.errorMessage}</small> : null}</td></tr>)}{jobs.length === 0 ? <tr><td colSpan={5}><div className="empty-state">还没有同步任务。先点一次“立即同步”跑通链路。</div></td></tr> : null}</tbody></table></div>
+            <div className="table-section"><div className="section-head"><div><h2>同步任务</h2><p>优先确认触发源、状态、时间窗口和拉取记录数是不是合理。</p></div></div></div>
+            <div className="table-wrap">
+              <table>
+                <thead><tr><th>时间</th><th>平台</th><th>状态</th><th>记录数</th><th>触发信息</th></tr></thead>
+                <tbody>
+                  {jobs.map((j) => {
+                    const syncLog = syncLogByJobId.get(j.id);
+                    const windowDays = readAuditNumber(syncLog?.metadata, "windowDays");
+                    return (
+                      <tr key={j.id}>
+                        <td>{j.createdAt.toISOString().slice(0, 19).replace("T", " ")}</td>
+                        <td>{j.provider?.name || "ALL"}</td>
+                        <td><span className={`badge ${j.status === "SUCCESS" ? "success" : j.status === "FAILED" ? "danger" : "info"}`}>{j.status}</span></td>
+                        <td>{j.recordsSynced}</td>
+                        <td>
+                          <div>{j.trigger} · {formatWindow(windowDays)}</div>
+                          {j.errorMessage ? <small>{j.errorMessage}</small> : null}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {jobs.length === 0 ? <tr><td colSpan={5}><div className="empty-state">还没有同步任务。先点一次“立即同步”跑通链路。</div></td></tr> : null}
+                </tbody>
+              </table>
+            </div>
           </section>
 
           <section className="table-card">
