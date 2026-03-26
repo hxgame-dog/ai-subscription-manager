@@ -673,6 +673,32 @@ nav {
   line-height: 1.6;
 }
 
+.diagnostic-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.diagnostic-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.diagnostic-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-soft);
+}
+
+.diagnostic-list li + li {
+  margin-top: 6px;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
