@@ -295,6 +295,11 @@ nav {
   border-color: #d7e7f7;
 }
 
+.page-hero-sync-refined {
+  background: linear-gradient(180deg, #edf6f4 0%, #fffdf8 100%);
+  border-color: #d8e9e5;
+}
+
 .hero-copy {
   display: grid;
   gap: 10px;
@@ -1047,6 +1052,11 @@ small {
   background: linear-gradient(180deg, #fffdf9 0%, #f4faf8 100%);
 }
 
+.stat-card-sync {
+  background: linear-gradient(180deg, #f8fcfb 0%, #fffdf9 100%);
+  border-color: #dceae7;
+}
+
 .workspace-section-spend .section-kicker,
 .workspace-section-spend .stat-kicker {
   color: #a77a10;
@@ -1097,6 +1107,26 @@ small {
   color: var(--text);
   font-weight: 600;
   text-align: right;
+}
+
+.sync-overview-grid,
+.sync-summary-grid,
+.sync-ops-grid,
+.sync-data-grid {
+  align-items: stretch;
+}
+
+.sync-summary-card,
+.sync-failure-card {
+  background: linear-gradient(180deg, #fffefb 0%, #fbf8f2 100%);
+}
+
+.soft-card-quiet {
+  background: linear-gradient(180deg, #fcfbf8 0%, #f7f3eb 100%);
+}
+
+.diagnostic-list-compact {
+  margin-top: 14px;
 }
 
 @media (max-width: 1180px) {
