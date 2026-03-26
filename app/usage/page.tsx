@@ -26,6 +26,8 @@ export default async function UsagePage() {
 
   const providerStatuses = listProviderSyncStatuses(providers.map((p) => p.key));
   const statusByKey = new Map(providerStatuses.map((item) => [item.providerKey, item]));
+  const readyProviders = providerStatuses.filter((item) => item.available);
+  const blockedProviders = providerStatuses.filter((item) => item.mode === "official" && !item.available);
 
   return (
     <div className="page-stack">
@@ -37,7 +39,7 @@ export default async function UsagePage() {
         </div>
         <div className="hero-meta">
           <div className="meta-chip">
-            Auto-sync providers <strong>{providers.length}</strong>
+            Ready connectors <strong>{readyProviders.length}</strong>
           </div>
           <div className="meta-chip">
             Last job <strong>{jobs[0]?.status ?? "None"}</strong>
@@ -54,6 +56,33 @@ export default async function UsagePage() {
             </div>
           </div>
           <SyncTrigger providers={providers.map((p) => ({ id: p.id, name: p.name }))} />
+
+          <div style={{ marginTop: 20 }}>
+            <div className="section-head">
+              <div>
+                <h2>当前建议</h2>
+                <p>先把第一条真实同步链路跑通，再逐个平台扩展。</p>
+              </div>
+            </div>
+            <div className="soft-card" style={{ marginTop: 12 }}>
+              {readyProviders.length > 0 ? (
+                <>
+                  <strong>优先验证：{readyProviders[0]?.label}</strong>
+                  <span>{readyProviders[0]?.nextStep}</span>
+                </>
+              ) : blockedProviders.length > 0 ? (
+                <>
+                  <strong>优先补配置：{blockedProviders[0]?.label}</strong>
+                  <span>{blockedProviders[0]?.nextStep}</span>
+                </>
+              ) : (
+                <>
+                  <strong>下一步：实现更多真实 connector</strong>
+                  <span>目前自动同步平台里还没有 ready 的真实 connector，建议先完成 Cursor 或 Gemini。</span>
+                </>
+              )}
+            </div>
+          </div>
 
           <div style={{ marginTop: 20 }}>
             <div className="section-head">
@@ -91,6 +120,14 @@ export default async function UsagePage() {
                         <td>
                           <div>{status?.description ?? "尚未定义 connector 能力。"}</div>
                           {missing ? <div style={{ marginTop: 6 }}>{missing}</div> : null}
+                          {status?.nextStep ? <div style={{ marginTop: 6 }}>Next: {status.nextStep}</div> : null}
+                          {status?.docs ? (
+                            <div style={{ marginTop: 6 }}>
+                              <a href={status.docs} target="_blank" rel="noreferrer">
+                                查看接入文档
+                              </a>
+                            </div>
+                          ) : null}
                         </td>
                       </tr>
                     );

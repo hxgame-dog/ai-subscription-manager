@@ -22,6 +22,30 @@ See [`DEPLOY_CHECKLIST.md`](/Users/hxgame/Documents/Playground/DEPLOY_CHECKLIST.
 5. Seed sample providers: `npm run db:seed`
 6. Start dev server: `npm run dev`
 
+## Real Sync Connectors
+
+Current real sync support:
+
+- **Cursor** → official Admin API via `CURSOR_ADMIN_API_KEY`
+- **Gemini** → GCP Cloud Monitoring via `GEMINI_GCP_PROJECT_ID` + `GOOGLE_SERVICE_ACCOUNT_JSON`
+- **Gemini billing** (optional) → BigQuery billing export via:
+  - `GEMINI_BILLING_EXPORT_PROJECT_ID`
+  - `GEMINI_BILLING_EXPORT_DATASET`
+  - `GEMINI_BILLING_EXPORT_TABLE`
+
+Providers without a real connector no longer write mock usage/spend rows. The `/usage` page now shows whether a provider is:
+
+- `READY`
+- `NEEDS_CONFIG`
+- `PLANNED`
+
+Recommended rollout order:
+
+1. Configure Cursor and verify one successful manual sync.
+2. Configure Gemini request-count sync.
+3. Add Gemini billing export for spend backfill.
+4. Implement the next real provider connector.
+
 ## Publish Helper
 
 Use the helper below to add, commit, and push your current changes safely:

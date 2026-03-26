@@ -26,6 +26,7 @@ export type ProviderSyncStatus = {
   available: boolean;
   missing: string[];
   docs?: string;
+  nextStep: string;
 };
 
 export type SyncResult = {
@@ -73,6 +74,28 @@ function getGeminiMissingConfig() {
   return missing;
 }
 
+function getNextStep(providerKey: string, missing: string[], mode: "official" | "planned") {
+  if (mode === "planned") {
+    return "这个平台还没有真实 connector。建议先优先接 Cursor 或 Gemini 作为第一批真实同步来源。";
+  }
+
+  if (providerKey === "cursor") {
+    if (missing.length === 0) {
+      return "已经具备真实同步条件。现在去 /usage 点一次“立即同步”，验证是否能拉回 Cursor usage / spend。";
+    }
+    return "先在部署环境或本地 .env 中配置 CURSOR_ADMIN_API_KEY，然后回到 /usage 手动跑一次 Cursor 同步。";
+  }
+
+  if (providerKey === "gemini") {
+    if (missing.length === 0) {
+      return "已经具备真实同步条件。建议先验证 Cloud Monitoring 请求数，再补 BigQuery billing export 做费用回填。";
+    }
+    return "先补 GCP project id 和 service account JSON；如果还想要费用数据，再补 billing export 三个环境变量。";
+  }
+
+  return missing.length === 0 ? "已可测试真实同步。" : `先补齐配置：${missing.join("、")}`;
+}
+
 export function listProviderSyncStatuses(providerKeys: string[]): ProviderSyncStatus[] {
   return providerKeys.map((providerKey) => getProviderSyncStatus(providerKey));
 }
@@ -89,6 +112,7 @@ export function getProviderSyncStatus(providerKey: string): ProviderSyncStatus {
       configured: false,
       available: false,
       missing: ["Connector implementation"],
+      nextStep: getNextStep(providerKey, ["Connector implementation"], "planned"),
     };
   }
 
@@ -108,6 +132,7 @@ export function getProviderSyncStatus(providerKey: string): ProviderSyncStatus {
     available: capability.mode === "official" && missing.length === 0,
     missing,
     docs: capability.docs,
+    nextStep: getNextStep(providerKey, missing, capability.mode),
   };
 }
 
