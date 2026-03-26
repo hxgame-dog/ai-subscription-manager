@@ -17,7 +17,7 @@ export function hasGoogleServiceAccount() {
   return Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_JSON || process.env.GCP_SERVICE_ACCOUNT_JSON);
 }
 
-async function getAuthToken() {
+export async function getGoogleAuthToken() {
   const credentials = getServiceAccountCredentials();
   if (!credentials) {
     return null;
@@ -33,7 +33,7 @@ async function getAuthToken() {
 }
 
 export async function googleApiFetch(url: string, init?: RequestInit) {
-  const token = await getAuthToken();
+  const token = await getGoogleAuthToken();
   if (!token) {
     return null;
   }

@@ -8,7 +8,8 @@ export function SyncTrigger({ providers }: { providers: Provider[] }) {
   const [loading, setLoading] = useState(false);
   const [diagLoading, setDiagLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [selectedProviderId, setSelectedProviderId] = useState<string>("");
+  const [selectedProviderId, setSelectedProviderId] = useState<string>(providers.find((p) => p.key === "cursor")?.id ?? "");
+  const [lastDiagnosticAt, setLastDiagnosticAt] = useState<string | null>(null);
 
   const selectedProvider = useMemo(
     () => providers.find((provider) => provider.id === selectedProviderId),
@@ -55,6 +56,7 @@ export function SyncTrigger({ providers }: { providers: Provider[] }) {
 
     const data = await res.json();
     setDiagLoading(false);
+    setLastDiagnosticAt(new Date().toLocaleString());
 
     const detailText = Array.isArray(data.details) && data.details.length ? ` · ${data.details.join(" | ")}` : "";
     setMessage(`${data.summary || "诊断完成"}${detailText}`);
@@ -83,8 +85,9 @@ export function SyncTrigger({ providers }: { providers: Provider[] }) {
       </div>
 
       <div className="preset-hint">
-        建议先选 <strong>Cursor</strong>，点一次「先做连接诊断」，确认 API key 可用后，再跑真实同步。
+        建议先选 <strong>Cursor</strong> 跑第一条真实链路；然后切到 <strong>Gemini</strong> 做 Google Cloud dry-run。
       </div>
+      {lastDiagnosticAt ? <div className="preset-hint">最近一次诊断：{lastDiagnosticAt}</div> : null}
       {message ? <small>{message}</small> : null}
     </form>
   );
