@@ -23,6 +23,22 @@ function formatWindow(windowDays: number | null) {
   return "未记录";
 }
 
+function formatDuration(startedAt: Date | null, finishedAt: Date | null) {
+  if (!startedAt || !finishedAt) return "运行中 / 未记录";
+  const ms = finishedAt.getTime() - startedAt.getTime();
+  if (ms < 1000) return `${ms}ms`;
+  const seconds = Math.round(ms / 100) / 10;
+  return `${seconds}s`;
+}
+
+function splitJobMessage(message: string | null) {
+  if (!message) return [];
+  return message
+    .split(" | ")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 export default async function UsagePage() {
   const session = await auth();
   if (!session?.user?.id) return <div className="empty-state">请先登录后再查看同步记录。</div>;
@@ -46,6 +62,9 @@ export default async function UsagePage() {
   const syncLogByJobId = new Map(syncLogs.filter((log) => log.resourceId).map((log) => [log.resourceId as string, log]));
 
   const lastDiagnostic = diagnosticLogs[0] ?? null;
+  const latestJob = jobs[0] ?? null;
+  const latestFailedJob = jobs.find((job) => job.status === "FAILED") ?? null;
+
   const initialDiagnostic = lastDiagnostic
     ? {
         providerKey: lastDiagnostic.resourceId ?? "unknown",
@@ -54,6 +73,11 @@ export default async function UsagePage() {
         summary: readAuditString(lastDiagnostic.metadata, "summary") ?? "最近一次诊断结果已恢复。",
       }
     : null;
+
+  const latestJobLog = latestJob ? syncLogByJobId.get(latestJob.id) : null;
+  const latestJobWindow = readAuditNumber(latestJobLog?.metadata, "windowDays");
+  const latestJobDetails = splitJobMessage(latestJob?.errorMessage ?? null);
+  const latestFailedJobDetails = splitJobMessage(latestFailedJob?.errorMessage ?? null);
 
   return (
     <div className="page-stack">
@@ -82,7 +106,7 @@ export default async function UsagePage() {
           <div style={{ marginTop: 20 }}>
             <div className="section-head"><div><h2>当前建议</h2><p>先把第一条真实同步链路跑通，再逐个平台扩展。</p></div></div>
             <div className="soft-card" style={{ marginTop: 12 }}>
-              {readyProviders.length > 0 ? <><strong>优先验证：{readyProviders[0]?.label}</strong><span>{readyProviders[0]?.nextStep}</span></> : blockedProviders.length > 0 ? <><strong>优先补配置：{blockedProviders[0]?.label}</strong><span>{blockedProviders[0]?.nextStep}</span></> : <><strong>下一步：实现更多真实 connector</strong><span>目前自动同步平台里还没有 ready 的真实 connector，建议先完成 Cursor 或 Gemini。</span></>}
+              {readyProviders.length > 0 ? <><strong>优先验证：{readyProviders[0]?.label}</strong><span>{readyProviders[0]?.nextStep}</span></> : blockedProviders.length > 0 ? <><strong>优先补配置：{blockedProviders[0]?.label}</strong><span>{blockedProviders[0]?.nextStep}</span></> : <><strong>下一步：实现更多真实 connector</strong><span>目前自动同步平台里还没有 ready 的真实 connector，建议先完成 Cursor、Gemini 或 OpenAI。</span></>}
             </div>
           </div>
 
@@ -142,6 +166,56 @@ export default async function UsagePage() {
         </section>
 
         <div className="stack">
+          {latestJob ? (
+            <section className="card">
+              <div className="section-head">
+                <div>
+                  <h2>最近一次任务详情</h2>
+                  <p>先看这一张卡，就能知道最近一次同步到底做了什么、用了多久、问题出在哪。</p>
+                </div>
+              </div>
+              <div className="page-block">
+                <p>
+                  <strong>{latestJob.provider?.name || "ALL"}</strong> · <span className={`badge ${latestJob.status === "SUCCESS" ? "success" : latestJob.status === "FAILED" ? "danger" : "info"}`}>{latestJob.status}</span>
+                </p>
+                <p>触发方式：{latestJob.trigger} · 时间窗口：{formatWindow(latestJobWindow)} · 运行时长：{formatDuration(latestJob.startedAt, latestJob.finishedAt)}</p>
+                <p>记录数：{latestJob.recordsSynced}</p>
+                {latestJobDetails.length ? (
+                  <ul className="diagnostic-list">
+                    {latestJobDetails.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="empty-state">这次任务没有附加明细，通常表示链路很干净。</div>
+                )}
+              </div>
+            </section>
+          ) : null}
+
+          {latestFailedJob ? (
+            <section className="card">
+              <div className="section-head">
+                <div>
+                  <h2>最近失败任务排障</h2>
+                  <p>当你要定位问题时，优先看这里的失败摘要拆解。</p>
+                </div>
+              </div>
+              <div className="page-block">
+                <p><strong>{latestFailedJob.provider?.name || "ALL"}</strong> · {latestFailedJob.createdAt.toISOString().slice(0, 19).replace("T", " ")}</p>
+                {latestFailedJobDetails.length ? (
+                  <ul className="diagnostic-list">
+                    {latestFailedJobDetails.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="empty-state">这次失败没有拆分明细，建议先看任务表里的原始错误文本。</div>
+                )}
+              </div>
+            </section>
+          ) : null}
+
           <section className="table-card">
             <div className="table-section"><div className="section-head"><div><h2>同步任务</h2><p>优先确认触发源、状态、时间窗口和拉取记录数是不是合理。</p></div></div></div>
             <div className="table-wrap">
