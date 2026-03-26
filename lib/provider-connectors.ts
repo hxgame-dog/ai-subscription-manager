@@ -40,6 +40,13 @@ export type SyncResult = {
 };
 
 const PROVIDER_SYNC_CAPABILITIES: Record<string, ProviderSyncCapability> = {
+  openai: {
+    providerKey: "openai",
+    mode: "official",
+    label: "OpenAI Usage / Costs API",
+    description: "Pulls organization-level usage and costs from the official OpenAI admin endpoints.",
+    docs: "https://platform.openai.com/docs/api-reference/usage",
+  },
   cursor: {
     providerKey: "cursor",
     mode: "official",
@@ -60,24 +67,29 @@ function startOfUtcDay(date: Date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
+function getOpenAIMissingConfig() {
+  const missing: string[] = [];
+  if (!process.env.OPENAI_ADMIN_API_KEY) missing.push("OPENAI_ADMIN_API_KEY");
+  return missing;
+}
+
 function getCursorMissingConfig() {
   return process.env.CURSOR_ADMIN_API_KEY ? [] : ["CURSOR_ADMIN_API_KEY"];
 }
 
 function getGeminiMissingConfig() {
   const missing: string[] = [];
-  if (!(process.env.GEMINI_GCP_PROJECT_ID || process.env.GCP_PROJECT_ID)) {
-    missing.push("GEMINI_GCP_PROJECT_ID | GCP_PROJECT_ID");
-  }
-  if (!hasGoogleServiceAccount()) {
-    missing.push("GOOGLE_SERVICE_ACCOUNT_JSON | GCP_SERVICE_ACCOUNT_JSON");
-  }
+  if (!(process.env.GEMINI_GCP_PROJECT_ID || process.env.GCP_PROJECT_ID)) missing.push("GEMINI_GCP_PROJECT_ID | GCP_PROJECT_ID");
+  if (!hasGoogleServiceAccount()) missing.push("GOOGLE_SERVICE_ACCOUNT_JSON | GCP_SERVICE_ACCOUNT_JSON");
   return missing;
 }
 
 function getNextStep(providerKey: string, missing: string[], mode: "official" | "planned") {
-  if (mode === "planned") {
-    return "这个平台还没有真实 connector。建议先优先接 Cursor 或 Gemini 作为第一批真实同步来源。";
+  if (mode === "planned") return "这个平台还没有真实 connector。建议先优先接 Cursor、Gemini、OpenAI 作为第一批真实同步来源。";
+  if (providerKey === "openai") {
+    return missing.length === 0
+      ? "已经具备真实同步条件。先做 OpenAI 诊断，再按 24h / 7d / 30d 窗口拉取 usage 和 costs。"
+      : "先在部署环境或本地 .env 中配置 OPENAI_ADMIN_API_KEY；如果需要限定组织，再额外配置 OPENAI_ORG_ID。";
   }
   if (providerKey === "cursor") {
     return missing.length === 0
@@ -111,7 +123,14 @@ export function getProviderSyncStatus(providerKey: string): ProviderSyncStatus {
     };
   }
 
-  const missing = providerKey === "cursor" ? getCursorMissingConfig() : providerKey === "gemini" ? getGeminiMissingConfig() : [];
+  const missing =
+    providerKey === "openai"
+      ? getOpenAIMissingConfig()
+      : providerKey === "cursor"
+        ? getCursorMissingConfig()
+        : providerKey === "gemini"
+          ? getGeminiMissingConfig()
+          : [];
 
   return {
     providerKey,
@@ -129,6 +148,117 @@ export function getProviderSyncStatus(providerKey: string): ProviderSyncStatus {
 async function clearSourceWindow(userId: string, providerId: string, sourcePrefix: string, start: Date) {
   await prisma.usageRecord.deleteMany({ where: { userId, providerId, source: { startsWith: sourcePrefix }, recordedAt: { gte: start } } });
   await prisma.spendRecord.deleteMany({ where: { userId, providerId, source: { startsWith: sourcePrefix }, recordedAt: { gte: start } } });
+}
+
+async function openaiFetch(path: string) {
+  const apiKey = process.env.OPENAI_ADMIN_API_KEY;
+  if (!apiKey) return null;
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+  };
+  if (process.env.OPENAI_ORG_ID) headers["OpenAI-Organization"] = process.env.OPENAI_ORG_ID;
+
+  return fetch(`https://api.openai.com${path}`, { headers, cache: "no-store" });
+}
+
+async function syncOpenAIUsage(context: SyncContext): Promise<SyncResult> {
+  const missing = getOpenAIMissingConfig();
+  if (missing.length > 0) return { handled: true, records: 0, mode: "official", status: "misconfigured", missing, message: `OpenAI connector is not configured: ${missing.join(", ")}` };
+
+  const windowDays = context.windowDays ?? 7;
+  const start = startOfUtcDay(subDays(new Date(), windowDays));
+  const sourcePrefix = "connector:openai:admin-api";
+  await clearSourceWindow(context.userId, context.providerId, sourcePrefix, start);
+
+  const activeCredential = await prisma.apiCredential.findFirst({ where: { userId: context.userId, providerId: context.providerId, status: "ACTIVE" }, orderBy: { updatedAt: "desc" }, select: { id: true } });
+
+  let records = 0;
+  const startTime = Math.floor(start.getTime() / 1000);
+
+  const usageResponse = await openaiFetch(`/v1/organization/usage/completions?start_time=${startTime}&bucket_width=1d&limit=30`);
+  if (!usageResponse) throw new Error("OpenAI sync could not authenticate.");
+  if (!usageResponse.ok) throw new Error(`OpenAI usage sync failed with ${usageResponse.status}`);
+
+  const usageData = (await usageResponse.json()) as {
+    data?: Array<{
+      start_time?: number;
+      end_time?: number;
+      results?: Array<{
+        model?: string;
+        input_tokens?: number;
+        output_tokens?: number;
+        num_model_requests?: number;
+      }>;
+    }>;
+  };
+
+  for (const bucket of usageData.data || []) {
+    const recordedAt = new Date(((bucket.end_time ?? bucket.start_time ?? startTime) as number) * 1000);
+    for (const result of bucket.results || []) {
+      const model = result.model ?? "openai-unknown";
+      await prisma.usageRecord.create({
+        data: {
+          userId: context.userId,
+          providerId: context.providerId,
+          credentialId: activeCredential?.id,
+          providerModel: model,
+          model,
+          requestCount: result.num_model_requests ?? 0,
+          inputTokens: result.input_tokens ?? 0,
+          outputTokens: result.output_tokens ?? 0,
+          recordedAt,
+          source: `${sourcePrefix}:usage`,
+        },
+      });
+      records += 1;
+    }
+  }
+
+  const costsResponse = await openaiFetch(`/v1/organization/costs?start_time=${startTime}&bucket_width=1d&limit=30`);
+  if (costsResponse && costsResponse.ok) {
+    const costData = (await costsResponse.json()) as {
+      data?: Array<{
+        start_time?: number;
+        end_time?: number;
+        results?: Array<{
+          amount?: { value?: number; currency?: string };
+          line_item?: string;
+        }>;
+      }>;
+    };
+
+    for (const bucket of costData.data || []) {
+      const recordedAt = new Date(((bucket.end_time ?? bucket.start_time ?? startTime) as number) * 1000);
+      for (const result of bucket.results || []) {
+        const amount = result.amount?.value ?? 0;
+        await prisma.spendRecord.create({
+          data: {
+            userId: context.userId,
+            providerId: context.providerId,
+            credentialId: activeCredential?.id,
+            providerModel: result.line_item ?? "openai-costs",
+            amount,
+            currency: result.amount?.currency?.toUpperCase() ?? "USD",
+            recordedAt,
+            source: `${sourcePrefix}:costs`,
+          },
+        });
+        records += 1;
+      }
+    }
+  }
+
+  if (activeCredential) await prisma.apiCredential.update({ where: { id: activeCredential.id }, data: { lastUsedAt: new Date() } });
+
+  return {
+    handled: true,
+    records,
+    mode: "official",
+    status: "synced",
+    message: records > 0 ? `Synced OpenAI usage/costs for the last ${windowDays} day(s).` : `OpenAI sync completed with no matching usage/cost rows in the last ${windowDays} day(s).`,
+  };
 }
 
 async function syncCursorUsage(context: SyncContext): Promise<SyncResult> {
@@ -151,13 +281,7 @@ async function syncCursorUsage(context: SyncContext): Promise<SyncResult> {
   let page = 0;
 
   while (page < 20) {
-    const payload: Record<string, unknown> = {
-      startDate,
-      endDate,
-      pageSize: 100,
-      ...(cursor ? { cursor } : {}),
-      ...(user?.email ? { email: user.email, searchTerm: user.email } : {}),
-    };
+    const payload: Record<string, unknown> = { startDate, endDate, pageSize: 100, ...(cursor ? { cursor } : {}), ...(user?.email ? { email: user.email, searchTerm: user.email } : {}) };
     const response = await fetch("https://api.cursor.com/teams/filtered-usage-events", {
       method: "POST",
       headers: { Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString("base64")}`, "Content-Type": "application/json" },
@@ -194,7 +318,6 @@ async function syncCursorUsage(context: SyncContext): Promise<SyncResult> {
   }
 
   if (activeCredential) await prisma.apiCredential.update({ where: { id: activeCredential.id }, data: { lastUsedAt: new Date() } });
-
   return { handled: true, records, mode: "official", status: "synced", message: records > 0 ? `Synced ${records} Cursor records from the admin API for the last ${windowDays} day(s).` : `Cursor sync completed with no matching events in the last ${windowDays} day(s).` };
 }
 
@@ -250,6 +373,7 @@ async function syncGeminiUsage(context: SyncContext): Promise<SyncResult> {
 }
 
 export async function syncProviderUsage(context: SyncContext): Promise<SyncResult> {
+  if (context.providerKey === "openai") return syncOpenAIUsage(context);
   if (context.providerKey === "cursor") return syncCursorUsage(context);
   if (context.providerKey === "gemini") return syncGeminiUsage(context);
   return { handled: false, records: 0, status: "unsupported", message: `No real sync connector has been implemented for provider: ${context.providerKey}` };

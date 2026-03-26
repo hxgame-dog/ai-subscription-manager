@@ -26,6 +26,8 @@ See [`DEPLOY_CHECKLIST.md`](/Users/hxgame/Documents/Playground/DEPLOY_CHECKLIST.
 
 Current real sync support:
 
+- **OpenAI** → official organization usage/costs API via `OPENAI_ADMIN_API_KEY`
+  - Optional: `OPENAI_ORG_ID`
 - **Cursor** → official Admin API via `CURSOR_ADMIN_API_KEY`
 - **Gemini** → GCP Cloud Monitoring via `GEMINI_GCP_PROJECT_ID` + `GOOGLE_SERVICE_ACCOUNT_JSON`
 - **Gemini billing** (optional) → BigQuery billing export via:
@@ -44,7 +46,8 @@ Recommended rollout order:
 1. Configure Cursor and verify one successful manual sync.
 2. Configure Gemini request-count sync.
 3. Add Gemini billing export for spend backfill.
-4. Implement the next real provider connector.
+4. Configure OpenAI organization usage/costs sync.
+5. Implement the next real provider connector.
 
 ## Publish Helper
 
@@ -62,6 +65,10 @@ npm run publish -- "your commit message"
 
 ## Provider Sync Config
 
+- `OPENAI_ADMIN_API_KEY`
+  Enables OpenAI organization usage/cost sync from the official admin endpoints.
+- `OPENAI_ORG_ID`
+  Optional explicit OpenAI organization header.
 - `CURSOR_ADMIN_API_KEY`
   Enables real Cursor usage event sync from the official Admin API.
 - `GEMINI_GCP_PROJECT_ID`
