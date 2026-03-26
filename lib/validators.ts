@@ -22,6 +22,7 @@ export const credentialSchema = z.object({
 export const syncSchema = z.object({
   providerId: z.string().optional(),
   trigger: z.enum(["MANUAL", "CRON"]).default("MANUAL"),
+  windowDays: z.union([z.literal(1), z.literal(7), z.literal(30)]).default(7),
 });
 
 export const alertRuleSchema = z.object({
