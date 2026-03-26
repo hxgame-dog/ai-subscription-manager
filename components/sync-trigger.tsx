@@ -1,10 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-export function SyncTrigger({ providers }: { providers: Array<{ id: string; name: string }> }) {
+type Provider = { id: string; name: string; key?: string };
+
+export function SyncTrigger({ providers }: { providers: Provider[] }) {
   const [loading, setLoading] = useState(false);
+  const [diagLoading, setDiagLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [selectedProviderId, setSelectedProviderId] = useState<string>("");
+
+  const selectedProvider = useMemo(
+    () => providers.find((provider) => provider.id === selectedProviderId),
+    [providers, selectedProviderId],
+  );
 
   async function onSubmit(formData: FormData) {
     setLoading(true);
@@ -29,19 +38,53 @@ export function SyncTrigger({ providers }: { providers: Array<{ id: string; name
     );
   }
 
+  async function runDiagnostic() {
+    if (!selectedProvider?.key) {
+      setMessage("请先选择一个具体平台，再做诊断。");
+      return;
+    }
+
+    setDiagLoading(true);
+    setMessage(null);
+
+    const res = await fetch("/api/usage/diagnose", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ providerKey: selectedProvider.key }),
+    });
+
+    const data = await res.json();
+    setDiagLoading(false);
+
+    const detailText = Array.isArray(data.details) && data.details.length ? ` · ${data.details.join(" | ")}` : "";
+    setMessage(`${data.summary || "诊断完成"}${detailText}`);
+  }
+
   return (
-    <form action={onSubmit}>
-      <select name="providerId">
-        <option value="">全部自动同步平台</option>
-        {providers.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-          </option>
-        ))}
-      </select>
-      <button disabled={loading} type="submit">
-        {loading ? "同步中..." : "立即同步"}
-      </button>
+    <form action={onSubmit} className="wide-form">
+      <div className="row">
+        <select name="providerId" value={selectedProviderId} onChange={(e) => setSelectedProviderId(e.target.value)}>
+          <option value="">全部自动同步平台</option>
+          {providers.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="row">
+        <button disabled={loading} type="submit">
+          {loading ? "同步中..." : "立即同步"}
+        </button>
+        <button disabled={diagLoading} type="button" onClick={runDiagnostic}>
+          {diagLoading ? "诊断中..." : "先做连接诊断"}
+        </button>
+      </div>
+
+      <div className="preset-hint">
+        建议先选 <strong>Cursor</strong>，点一次「先做连接诊断」，确认 API key 可用后，再跑真实同步。
+      </div>
       {message ? <small>{message}</small> : null}
     </form>
   );

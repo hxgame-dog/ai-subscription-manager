@@ -55,7 +55,7 @@ export default async function UsagePage() {
               <p>每次新接一个平台时，先手动跑通，再交给定时任务每天巡检。</p>
             </div>
           </div>
-          <SyncTrigger providers={providers.map((p) => ({ id: p.id, name: p.name }))} />
+          <SyncTrigger providers={providers.map((p) => ({ id: p.id, name: p.name, key: p.key }))} />
 
           <div style={{ marginTop: 20 }}>
             <div className="section-head">
